@@ -1,0 +1,50 @@
+{
+  "slug": "zhang-2026-china-solar-expansion",
+  "issue": 4,
+  "issue_url": "https://github.com/sahiljangra12/replicaudit/issues/4",
+  "submitted": "2026-11-27",
+  "status": "not enough material",
+  "title": "China’s solar expansion policy reduces bird diversity",
+  "authors": "Zhang, H.; Zhang, A.; Wu, K.; Cai, Y.; Li, S.; Wang, S.; et al.",
+  "journal_year": "Science 393:831-836, 2026",
+  "doi": "10.1126/science.aee0747",
+  "field": "Not stated",
+  "relationship": "Not stated",
+  "notes": null,
+  "package": {
+    "source": "https://osf.io/9sm4x",
+    "resolved_url": "https://osf.io/9sm4x",
+    "kind": "osf",
+    "node": "9sm4x",
+    "unpacked": [],
+    "manifest": [
+      {
+        "path": "Towards minimum reporting standards for life scientists.pdf",
+        "bytes": 58018,
+        "sha256": "35e56192d9dd749d66439df0352005795abd4d5bbcf0224c1f48d46340fac317"
+      }
+    ],
+    "package_sha256": "289b20935ca1781749b144538045e27507c2915c7029d280c003ba2ebd1ea026"
+  },
+  "paper": {
+    "source": "upload://7b97f45536f322b3/s41467-026-69878-z.pdf",
+    "sha256": "d4c4e465a0ebbf97de08548af28b31570839c0c08f39916e0c7a3ca1e4c0c6b1",
+    "bytes": 1043378
+  },
+  "supplement": [
+    {
+      "source": "upload://7b97f45536f322b3/science.aee0747_mdar_reproducibility_checklist.pdf",
+      "file": "science.aee0747_mdar_reproducibility_checklist.pdf",
+      "sha256": "f5c7a2a238ca957798f3cf4b9fb3cb5be29c2defa11d2cd0161d13bfa0805d04",
+      "bytes": 255648
+    },
+    {
+      "source": "upload://7b97f45536f322b3/science.aee0747_sm.pdf",
+      "file": "science.aee0747_sm.pdf",
+      "sha256": "483ab212e4e50164b33121b12fffddc08fcc59e92d4ed67d72de062e9f390a1a",
+      "bytes": 1683761
+    }
+  ],
+  "error": "No data or analysis code was found in the replication package (it contained only Towards minimum reporting standards for life scientists.pdf). Please send the package with the data files (.csv, .dta, .rds, .xlsx, ...) and the scripts.",
+  "uploads_removed": 3
+}

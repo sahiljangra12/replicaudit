@@ -1,0 +1,27 @@
+id,description,b,se,n,main
+TS5c1,"Table S5 col 1: Temp",-0.0623,0.0826,37503,false
+TS5c2,"Table S5 col 2: Temp",-0.0039,0.0245,37503,false
+TS5c1r2,"Table S5 col 1: Pop",-0.2241,0.3240,37503,false
+TS5c2r2,"Table S5 col 2: Pop",-0.1335,0.1372,37503,false
+TS5c1r3,"Table S5 col 1: Farm",4.3525,2.7758,37503,false
+TS5c2r3,"Table S5 col 2: Farm",0.8204,0.8162,37503,false
+TS5c1r4,"Table S5 col 1: Grass",0.9890,4.4269,37503,false
+TS5c2r4,"Table S5 col 2: Grass",1.1258,1.3907,37503,false
+TS5c1r5,"Table S5 col 1: Temp",-0.0001,0.0063,37503,false
+TS5c2r5,"Table S5 col 2: Temp",0.0194,0.0219,37503,false
+TS5c1r6,"Table S5 col 1: Wind",-0.0309,0.0338,37503,false
+TS5c2r6,"Table S5 col 2: Wind",0.0189,0.0832,37503,false
+TS5c1r7,"Table S5 col 1: Carbon",-0.0334,0.0248,37503,false
+TS5c2r7,"Table S5 col 2: Carbon",-0.0217,0.0219,37503,false
+TS5c1r8,"Table S5 col 1: Grass",0.0503,0.1938,37503,false
+TS5c2r8,"Table S5 col 2: Grass",0.3696,0.4614,37503,false
+TS5c1r9,"Table S5 col 1: Temp",-0.0037,0.0243,,false
+TS5c3,"Table S5 col 3: Temp",-0.0155,0.0258,,false
+TS5c4,"Table S5 col 4: Temp",-0.0059,0.0253,,false
+TS5c5,"Table S5 col 5: Temp",-0.0263,0.0271,,false
+TS5c1r10,"Table S5 col 1: Pop",-0.1326,0.1368,,false
+TS5c3r2,"Table S5 col 3: Pop",-0.0717,0.1483,,false
+TS1c4r27,"Table S1 col 4: Farm",0.5292,1.1097,15934,false
+TS1c1r42,"Table S1 col 1: Grass",0.6144,1.1356,38497,false
+TS1c2r41,"Table S1 col 2: Grass",107.4241,36.8349,45606,false
+TS1c3r40,"Table S1 col 3: Grass",0.0239,0.1561,43958,false
