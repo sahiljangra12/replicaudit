@@ -20,7 +20,7 @@ Pull request with audits/<slug>/  ──►  human review + authors invited to r
 Merge with status "published"  ──►  website rebuilt and deployed by GitHub Pages
 ```
 
-**Submitting:** open the [audit request form](https://github.com/sahiljangra12/replicaudit/issues/new?template=audit-request.yml). It asks for:
+**Submitting:** fill in the form on the website's [Submit page](https://sahiljangra12.github.io/replicaudit/submit.html). It checks the entries as you type (DOI format, recognised package source) and hands everything to a pre-filled GitHub request, which the submitter sends from their own account so the request is on the public record. The [GitHub form](https://github.com/sahiljangra12/replicaudit/issues/new?template=audit-request.yml) can also be used directly. It asks for:
 
 | Item | How |
 |---|---|

@@ -6,10 +6,10 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for submitting a paper. Everything in this form is public. Please read the [Methods](https://sahiljangra12.github.io/replicaudit/methods.html) and [Policy](https://sahiljangra12.github.io/replicaudit/policy.html) first.
+        **Easiest:** fill in the form on the [website](https://sahiljangra12.github.io/replicaudit/submit.html), which pre-fills this page. Thanks for submitting a paper. Everything in this form is public. Please read the [Methods](https://sahiljangra12.github.io/replicaudit/methods.html) and [Policy](https://sahiljangra12.github.io/replicaudit/policy.html) first.
         **Links are best.** You can also drag files into the text boxes (GitHub accepts .zip and .pdf up to 25 MB).
   - type: input
-    id: title
+    id: paper_title
     attributes:
       label: Paper title
     validations:
@@ -62,27 +62,18 @@ body:
       placeholder: |
         id,description,b,se,n,main
         T1c3,"Table 1 col 3: outcome on treatment, all controls",-.0125,.0037,46371,true
-  - type: dropdown
+  - type: input
     id: field
     attributes:
       label: Field
-      options:
-        - Ecology & biodiversity
-        - Climate & energy
-        - Environmental economics & policy
-        - Environment & health
-        - Agriculture & land use
-        - Other
+      description: "e.g. Ecology & biodiversity, Climate & energy, Environmental economics & policy, Environment & health, Agriculture & land use"
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: relationship
     attributes:
       label: Your relationship to the paper
-      options:
-        - I am an author
-        - Not an author
-        - Author of a related or competing paper
+      description: "I am an author / Not an author / Author of a related or competing paper"
     validations:
       required: true
   - type: textarea
