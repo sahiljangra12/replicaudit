@@ -20,14 +20,14 @@ Pull request with audits/<slug>/  ──►  human review + authors invited to r
 Merge with status "published"  ──►  website rebuilt and deployed by GitHub Pages
 ```
 
-**Submitting:** fill in the form on the website's [Submit page](https://sahiljangra12.github.io/replicaudit/submit.html). It checks the entries as you type (DOI format, recognised package source) and hands everything to a pre-filled GitHub request, which the submitter sends from their own account so the request is on the public record. The [GitHub form](https://github.com/sahiljangra12/replicaudit/issues/new?template=audit-request.yml) can also be used directly. It asks for:
+**Submitting:** fill in the form on the website's [Submit page](https://sahiljangra12.github.io/replicaudit/submit.html). It fills in the paper's details from its DOI, accepts each material as a link or a file (any number of supplementary files), reads chosen PDFs in the browser to suggest the estimates to check, and hands everything to a pre-filled GitHub request, which the submitter sends from their own account so the request is on the public record. The [GitHub form](https://github.com/sahiljangra12/replicaudit/issues/new?template=audit-request.yml) can also be used directly. It asks for:
 
 | Item | How |
 |---|---|
 | Paper title, authors, journal, DOI | typed |
 | Replication package (required) | DOI or link: Zenodo, Dataverse, OSF, GitHub repo, direct .zip, or attach a .zip ≤ 25 MB. Inner .zip/.rar/.7z/.tar.gz archives are unpacked. |
 | Paper PDF | open-access link or attachment (not stored) |
-| Supplementary materials | link or attachment, if estimates are there |
+| Supplementary materials | any number of links and/or files; PDFs are read for estimates, other files (.zip, .xlsx, .csv) join the package |
 | Claims table (optional) | `id,description,b,se,n,main`, numbers exactly as printed; otherwise extracted from the PDF |
 
 ## Repository layout

@@ -52,7 +52,7 @@ body:
     id: supplement
     attributes:
       label: Supplementary materials
-      description: Link to or attach the supplement PDF if estimates to check are reported there.
+      description: One link per line, and/or drag files into this box (PDF, .zip, .xlsx, .csv, .docx; up to 25 MB each). All of them are fetched.
   - type: textarea
     id: claims
     attributes:

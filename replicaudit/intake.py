@@ -60,6 +60,19 @@ def first_link(text: str | None) -> str | None:
     return t if re.match(r"^(doi:)?10\.\d{4,9}/", t, re.I) else None
 
 
+def all_links(text: str | None) -> list[str]:
+    if not text:
+        return []
+    out = [m.rstrip(".,;") for m in URL_RE.findall(text)]
+    out += [t.strip() for t in text.splitlines() if re.match(r"^(doi:)?10\.\d{4,9}/\S+$", t.strip(), re.I)]
+    seen, uniq = set(), []
+    for u in out:
+        if u not in seen:
+            seen.add(u)
+            uniq.append(u)
+    return uniq
+
+
 def slugify(sub: dict) -> str:
     first = (sub.get("authors") or "anon").split(",")[0].split(" and ")[0].strip().split()
     surname = first[-1] if first else "anon"
@@ -109,16 +122,34 @@ def run_intake(body: str, root: Path, backend, issue: int | None = None, issue_u
         record["package"] = fetch_package(pkg_src, tmp / "package")
 
         texts = []
-        for key in ("paper", "supplement"):
-            link = first_link(sub.get(key))
-            if not link:
-                continue
+        link = first_link(sub.get("paper"))
+        if link:
             try:
-                f = fetch_file(link, tmp / key)
-                record[key] = {"source": link, "sha256": sha256_file(f), "bytes": f.stat().st_size}
-                texts.append(f"===== {key.upper()} =====\n" + read_paper(f))
+                f = fetch_file(link, tmp / "paper")
+                record["paper"] = {"source": link, "sha256": sha256_file(f), "bytes": f.stat().st_size}
+                texts.append("===== PAPER =====\n" + read_paper(f))
             except Exception as e:
-                record[key] = {"source": link, "error": str(e)[:300]}
+                record["paper"] = {"source": link, "error": str(e)[:300]}
+        # every supplementary file: PDFs are read for claims, anything else joins the package
+        record["supplement"] = []
+        for i, link in enumerate(all_links(sub.get("supplement")), 1):
+            try:
+                f = fetch_file(link, tmp / f"supplement_{i}")
+                entry = {"source": link, "file": f.name, "sha256": sha256_file(f), "bytes": f.stat().st_size}
+                if f.suffix.lower() == ".pdf":
+                    texts.append(f"===== SUPPLEMENT {i}: {f.name} =====\n" + read_paper(f))
+                else:
+                    dest = tmp / "package" / "_supplementary"
+                    dest.mkdir(parents=True, exist_ok=True)
+                    shutil.copy(f, dest / f.name)
+                    entry["added_to_package"] = True
+                record["supplement"].append(entry)
+            except Exception as e:
+                record["supplement"].append({"source": link, "error": str(e)[:300]})
+        if any(e.get("added_to_package") for e in record["supplement"]):
+            from .fetch import manifest, unpack_archives
+            record["package"]["unpacked"] += unpack_archives(tmp / "package" / "_supplementary")
+            record["package"]["manifest"] = manifest(tmp / "package")
         paper_txt = None
         if texts:
             paper_txt = tmp / "paper_and_supplement.txt"

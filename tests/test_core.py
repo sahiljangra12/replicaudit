@@ -46,3 +46,10 @@ def test_claims_csv(tmp_path):
     p = claims_from_csv_text("```csv\nT1,\"x\",-.01,.002,10,true\n```", tmp_path / "c.csv")
     c = load_claims(p)
     assert c[0]["b"] == "-.01" and c[0]["main"] is True
+
+
+def test_all_links():
+    from replicaudit.intake import all_links
+    txt = ("https://a.org/s1.pdf\n📎 Attach s2.pdf here\n[s2.pdf](https://github.com/user-attachments/files/9/s2.pdf)\n"
+           "10.5281/zenodo.123\nhttps://a.org/s1.pdf")
+    assert all_links(txt) == ["https://a.org/s1.pdf", "https://github.com/user-attachments/files/9/s2.pdf", "10.5281/zenodo.123"]

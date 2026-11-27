@@ -358,6 +358,8 @@ def audit_page(a):
             ("Replication package", f'<a href="{E(pkg.get("resolved_url") or pkg.get("source") or "")}">{E(pkg.get("source") or "—")}</a>'),
             ("Version", f'<span class="mono">{E(str(pkg.get("version") or pkg.get("commit") or "—"))}</span>'),
             ("Files fingerprinted", f'{len(pkg.get("manifest", []))} files · SHA-256 of manifest <span class="mono">{E(pkg.get("package_sha256", "")[:20])}…</span>'),
+            ("Supplementary files", E(", ".join((x.get("file") or x.get("source", "")) for x in sub.get("supplement") or [] if isinstance(x, dict)) or "—")
+             if isinstance(sub.get("supplement"), list) else "—"),
             ("Archives unpacked", E(", ".join(pkg.get("unpacked") or []) or "—")),
             ("Estimates listed by", "the submitter" if any((a["dir"] / f).exists() for f in ("claims_submitted.csv", "claims.csv")) else "the model, from the paper"),
             ("Model", E(f"{au.get('model') or au.get('backend', '')}")),
@@ -468,20 +470,42 @@ def submit_page():
 <div class="f"><label for="relationship">Your relationship to the paper</label><select class="field-in" id="relationship" data-label="Relationship"><option value="">Choose…</option><option>Not an author</option><option>I am an author</option><option>Author of a related or competing paper</option></select></div>
 </div></div>
 
-<div class="fset"><h3><span class="badge">2</span>Materials</h3><p>Links work best. Files are downloaded for the audit and never republished.</p>
+<div class="fset"><h3><span class="badge">2</span>Materials</h3><p>For each one, paste a link or choose a file from your computer.</p>
 <div class="frow">
-<div class="f full"><label for="package">Replication package — data and code</label><input class="field-in" id="package" data-label="Replication package" placeholder="https://doi.org/10.5281/zenodo.1234567" autocapitalize="off" spellcheck="false">
+<div class="f full"><label for="package">Replication package — data and code</label>
+<div class="seg" data-target="package" role="tablist"><button type="button" data-mode="link" class="on">Link</button><button type="button" data-mode="file">File</button></div>
+<div data-pane="package-link"><input class="field-in" id="package" data-label="Replication package" placeholder="DOI or link: Zenodo, Dataverse, OSF, GitHub, or a .zip" autocapitalize="off" spellcheck="false"></div>
+<div data-pane="package-file" hidden><label class="drop" for="package-file"><input type="file" id="package-file" accept=".zip,.gz,.tgz" hidden><span class="drop-t">Choose a .zip</span><span class="drop-s">or drop it here · up to 25 MB</span></label></div>
 <div class="detect" id="package-detect"></div>
-<div class="hint">Zenodo, Harvard Dataverse (or any Dataverse), OSF, a GitHub repository, or a direct link to a .zip. Archives inside it (.zip, .rar, .7z, .tar.gz) are unpacked automatically.</div></div>
-<div class="f"><label for="paper">Paper PDF <span class="opt">— recommended</span></label><input class="field-in" id="paper" placeholder="Found automatically if open access" autocapitalize="off" spellcheck="false"><div class="detect" id="paper-detect"></div><div class="hint">Used to find the reported estimates.</div></div>
-<div class="f"><label for="supplement">Supplementary materials <span class="opt">— optional</span></label><input class="field-in" id="supplement" placeholder="Link to the SM PDF" autocapitalize="off" spellcheck="false"><div class="hint">Needed if the estimates to check are in the supplement.</div></div>
+<div class="hint">Archives inside the package (.zip, .rar, .7z, .tar.gz) are unpacked automatically. Larger than 25 MB? Upload it free at <a href="https://zenodo.org/uploads/new">Zenodo</a> and paste the DOI.</div></div>
+
+<div class="f full"><label for="paper">Paper PDF <span class="opt">— recommended</span></label>
+<div class="seg" data-target="paper" role="tablist"><button type="button" data-mode="link" class="on">Link</button><button type="button" data-mode="file">File</button></div>
+<div data-pane="paper-link"><input class="field-in" id="paper" placeholder="Found automatically if open access" autocapitalize="off" spellcheck="false"></div>
+<div data-pane="paper-file" hidden><label class="drop" for="paper-file"><input type="file" id="paper-file" accept=".pdf,application/pdf" hidden><span class="drop-t">Choose the PDF</span><span class="drop-s">or drop it here · up to 25 MB</span></label></div>
+<div class="detect" id="paper-detect"></div></div>
+
+<div class="f full"><label>Supplementary materials <span class="opt">— optional, as many as needed</span></label>
+<div class="hint" style="margin-bottom:4px">Journals usually offer these as a download button. Download them, then choose the files here, or paste their links.</div>
+<div id="supp-list" class="items"></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<label class="btn small secondary" for="supp-files" style="cursor:pointer">Add files<input type="file" id="supp-files" multiple accept=".pdf,.zip,.xlsx,.xls,.csv,.docx,.txt,.gz" hidden></label>
+<button class="btn small secondary" type="button" id="supp-addlink">Add a link</button></div>
+<div class="detect" id="supp-detect"></div></div>
 </div>
-<div class="note blue" style="margin-bottom:0"><b>Only have files, not links?</b> Upload them free at <a href="https://zenodo.org/uploads/new">Zenodo</a> to get a permanent DOI, then paste it here. Or drag files of up to 25 MB into the next page on GitHub.</div>
+<div class="note blue" style="margin-bottom:0"><b>How files travel.</b> Files you choose here are checked and read in your browser, and are not uploaded anywhere yet. On the next page you drag each one into its labelled box on GitHub, and the list below tells you which goes where. Other formats (.dta, .rar, .do, .R) need zipping first.</div>
 </div>
 
 <div class="fset"><h3><span class="badge">3</span>Estimates to check <span class="small" style="font-weight:400">— optional</span></h3>
-<p>List the key numbers exactly as printed, for example <span class="mono">-.042</span>, because the number of decimals sets the tolerance. Mark the headline result. If you leave this empty, estimates are extracted from the PDF and checked by the reviewer.</p>
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px"><button class="btn small secondary" type="button" id="pastebtn">Paste from a spreadsheet</button></div>
+<p>The key numbers exactly as printed, for example <span class="mono">-.042</span>, because the number of decimals sets the tolerance. Mark the headline result. If you leave this empty, estimates are extracted from the PDF during the audit and checked by the reviewer.</p>
+<div class="suggest" id="suggest">
+<div class="suggest-h"><div><b>Suggestions from the PDF</b><div class="small">Choose the paper or supplement as a file above and its tables are read here in your browser. Tick the estimates to check.</div></div>
+<button class="btn small" type="button" id="scan" disabled>Find estimates</button></div>
+<div class="small" id="sugg-status"></div>
+<div id="sugg-list"></div>
+<div id="sugg-actions" hidden style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center"><button class="btn small" type="button" id="sugg-add">Add selected</button><span class="small">Found automatically. Check each one against the paper.</span></div>
+</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 6px"><button class="btn small secondary" type="button" id="pastebtn">Paste from a spreadsheet</button></div>
 <div id="pastebox" style="display:none;margin:10px 0 4px"><textarea class="field-in" id="paste" style="min-height:110px;font-family:var(--mono);font-size:13px" placeholder="Copy rows from Excel, Google Sheets or a CSV. One row per estimate, in this order:&#10;ID   Description   Coefficient   Std. error   N   Headline (yes/no)"></textarea>
 <button class="btn small" type="button" id="pasteadd" style="margin-top:8px">Add these rows</button></div>
 <div class="small" id="paste-msg" style="min-height:4px"></div>
@@ -492,6 +516,7 @@ def submit_page():
 <div class="fset"><h3><span class="badge">4</span>Review and send</h3><p>Check the summary, then continue to GitHub to send it.</p>
 <div class="f full" style="margin-bottom:18px"><label for="notes">Notes for the auditors <span class="opt">— optional</span></label><textarea class="field-in" id="notes" placeholder="For example: which script produces which table, or data that are restricted."></textarea></div>
 <div id="summary" style="margin-bottom:18px"></div>
+<div class="note amber" id="attach" hidden style="margin-top:0"></div>
 <label class="check"><input type="checkbox" id="c1"><span>The replication materials are publicly available and I may point to them.</span></label>
 <label class="check"><input type="checkbox" id="c2"><span>I understand the audit is published openly after review, and the authors are invited to respond first.</span></label>
 <ul id="problems" class="small" style="color:var(--red);margin:14px 0 0;padding-left:20px"></ul>
@@ -509,7 +534,8 @@ def submit_page():
 <div class="step card"><h3 style="margin:0 0 6px">Reviewed</h3><p>A reviewer checks the estimates, code and robustness checks and writes an assessment.</p></div>
 <div class="step card"><h3 style="margin:0 0 6px">Published</h3><p>The authors are invited to respond within 14 days, then the audit joins the registry.</p></div>
 </div></div></section>"""
-    return page("Submit a paper", body, 0, "submit.html", extra_js='<script src="submit.js" defer></script>',
+    return page("Submit a paper", body, 0, "submit.html", extra_js=('<script src="vendor/pdfjs/pdf.min.js" defer></script><script src="estimates.js" defer></script>'
+                      '<script src="submit.js" defer></script>'),
                 body_attrs=f' data-repo="{REPO}"')
 
 
@@ -519,8 +545,9 @@ def build_site(audits_dir="audits", out="_site", include_drafts=False, static_di
         shutil.rmtree(out)
     out.mkdir(parents=True)
     static = Path(static_dir) if static_dir else Path(__file__).resolve().parent.parent / "site_src"
-    for f in ("style.css", "site.js", "submit.js"):
+    for f in ("style.css", "site.js", "submit.js", "estimates.js"):
         shutil.copy(static / f, out / f)
+    shutil.copytree(static / "vendor", out / "vendor")
     audits = load_audits(audits_dir, include_drafts)
     (out / "index.html").write_text(index_page(audits), encoding="utf-8")
     (out / "submit.html").write_text(submit_page(), encoding="utf-8")
