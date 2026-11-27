@@ -1,0 +1,393 @@
+{
+  "slug": "zhang-2026-solar-expansion-policy",
+  "issue": null,
+  "submitted": "2026-11-26",
+  "status": "draft",
+  "title": "China's solar expansion policy reduces bird diversity",
+  "authors": "Zhang, H. et al.",
+  "journal_year": "Science 393:831, 2026",
+  "doi": "10.1126/science.aee0747",
+  "field": "Ecology & biodiversity",
+  "relationship": "Not an author (maintainer pilot)",
+  "package": {
+    "source": "https://github.com/jianke22/China-s-solar-expansion-policy-reduces-bird-diversity",
+    "resolved_url": "https://github.com/jianke22/China-s-solar-expansion-policy-reduces-bird-diversity",
+    "kind": "github",
+    "repo": "jianke22/China-s-solar-expansion-policy-reduces-bird-diversity",
+    "ref": "default",
+    "commit": "d975f12d0deea424d4967adb0e93668dc4d6d2f7",
+    "unpacked": [
+      "DATA.rar",
+      "Documents.rar"
+    ],
+    "manifest": [
+      {
+        "path": "CODE.do",
+        "bytes": 63995,
+        "sha256": "316a203821d706f13697139948bd8022a3874deade95706575da9d3ffa1cbe5b"
+      },
+      {
+        "path": "DATA/AP.dta",
+        "bytes": 2598108,
+        "sha256": "b758338ec157cc1fe5eea65377824297e1422535976cc242ec15ec86cf3fac7c"
+      },
+      {
+        "path": "DATA/BTN.dta",
+        "bytes": 6559823,
+        "sha256": "832e6ec1bcfa0ea406c036ec83324fd25d9050c0d325e6e147ec7e4cfa61ad79"
+      },
+      {
+        "path": "DATA/Bird.dta",
+        "bytes": 6510655,
+        "sha256": "a2a0ab97906a2784ef87f9ff9ddb5b879f51735a426c3103ad60bdbb11953c81"
+      },
+      {
+        "path": "DATA/BirdDrop10.dta",
+        "bytes": 2227680,
+        "sha256": "98095aaa8f78b9784a55ee17361d4f5e3b9a4531b516bc9f8685e13b527fe458"
+      },
+      {
+        "path": "DATA/BirdDrop20.dta",
+        "bytes": 1184425,
+        "sha256": "5abb71ed94bae5436411b468e2bb7f93e11bfa9fc976afbccba50ac22d234f71"
+      },
+      {
+        "path": "DATA/BirdDrop3.dta",
+        "bytes": 3918260,
+        "sha256": "cc10f687e98350c73866273332696823e7fa7f8fb7c141de01c35302a34eef28"
+      },
+      {
+        "path": "DATA/BirdDrop5.dta",
+        "bytes": 3253125,
+        "sha256": "e05d875b9b83e7150ecd91c1dac3a57c1a70dc74d9d1ac08401f33010770844f"
+      },
+      {
+        "path": "DATA/CCPU.dta",
+        "bytes": 483851,
+        "sha256": "03ba678bd23bfdfeca62c7cffa1849061bab209abf72fae45b85ad67da247f30"
+      },
+      {
+        "path": "DATA/Climate.dta",
+        "bytes": 2703075,
+        "sha256": "6b4c92a2945b1e8c2a42a5bc5e4130631bd3ae9de91c7b24458b08658b4d0f5a"
+      },
+      {
+        "path": "DATA/Coal.dta",
+        "bytes": 22907,
+        "sha256": "5c59813898c72cc2dd1e4c9e79a5cc3bd90dc859b6669750f291fc13d0249172"
+      },
+      {
+        "path": "DATA/Endemic.dta",
+        "bytes": 3401466,
+        "sha256": "9aef88b13b77781cb1b0d49ea3637567c7deef7ecb4727b15f5ba19f379cf769"
+      },
+      {
+        "path": "DATA/Gebi.dta",
+        "bytes": 314891,
+        "sha256": "b08e6d1405e6e8f08c176aade04dd21371e8e0190551ffbd69760754dfd5b348"
+      },
+      {
+        "path": "DATA/Herbivorous.dta",
+        "bytes": 1370877,
+        "sha256": "13e95ae8335415ae2f25729eee48774509ec554bcd85ae9cff9f3422a49e3158"
+      },
+      {
+        "path": "DATA/IC.dta",
+        "bytes": 3026475,
+        "sha256": "bf506adf56293830ea4a2f842f878f5dabd6437a663de514a9e2c9e20f4c5edf"
+      },
+      {
+        "path": "DATA/LAI.dta",
+        "bytes": 1810439,
+        "sha256": "3f7afb7e51841447635c9ea4a7ccb9174e9ac13ad86fb8701d36999b8b4dc1ab"
+      },
+      {
+        "path": "DATA/Land_water.dta",
+        "bytes": 5992689,
+        "sha256": "9ec4e1f623d01f0a5fb5d32094a95e36fef8e076634a95e876ec2229bf293a90"
+      },
+      {
+        "path": "DATA/Large_flock.dta",
+        "bytes": 5277771,
+        "sha256": "48ec5f27e6f1f1263ddce2d4c9f8a6103473f0ef37e2ed97fec60c2af8913baa"
+      },
+      {
+        "path": "DATA/Migratory.dta",
+        "bytes": 5430636,
+        "sha256": "4940b74a47a2c36b6ee5f25279c0593604f4196b58a82f72d94f6d9107f825d3"
+      },
+      {
+        "path": "DATA/NL.dta",
+        "bytes": 1697695,
+        "sha256": "b3f291e90748d744bd370a1386d386b536fb3e9fe4f18c7c5ae9201cb2ce66f8"
+      },
+      {
+        "path": "DATA/Ndvi.dta",
+        "bytes": 5538124,
+        "sha256": "0690f030cc3c83321ae71d922d826dfffb3cb0ece684c6c052ddb1f4c89ca7c8"
+      },
+      {
+        "path": "DATA/Nest_veg.dta",
+        "bytes": 6098082,
+        "sha256": "07ab570bf63b4161541bee0a89c53bb8abd356ab8b04c6c1930d0f918e2a737e"
+      },
+      {
+        "path": "DATA/PD.dta",
+        "bytes": 1642724,
+        "sha256": "3685a2243253f780f0e800fd0aac0e22464f1709428cf3cfc3303ce764e3d864"
+      },
+      {
+        "path": "DATA/PI.dta",
+        "bytes": 1865251,
+        "sha256": "4d889c0c051dee2335222d06f5362c1b93f1ecf5f7ff317d4735710f1c28b83e"
+      },
+      {
+        "path": "DATA/PI1.dta",
+        "bytes": 1271252,
+        "sha256": "4840d0a8445fcaaf14ce15ec629d3998c192f79545f9fbc55761450506b95523"
+      },
+      {
+        "path": "DATA/PI2.dta",
+        "bytes": 1271252,
+        "sha256": "17a36ee5fb0876edf92888b109464ac3a451865e2741e13683118b271bb8ec10"
+      },
+      {
+        "path": "DATA/PI3.dta",
+        "bytes": 1271252,
+        "sha256": "6c36f2dd1763505f0018410146c1536c4fcd493eb784f5f7cda215d8d696b777"
+      },
+      {
+        "path": "DATA/PI4.dta",
+        "bytes": 1271252,
+        "sha256": "b1b9f59d0e89a5f857a1502fb77c21bc499cc3b7f67aa89add96e685b66bfa8b"
+      },
+      {
+        "path": "DATA/PI5.dta",
+        "bytes": 1271252,
+        "sha256": "1c4534e9209777bc0ee63a2476f813b8e42c612974621c989d2626399f31540f"
+      },
+      {
+        "path": "DATA/PI6.dta",
+        "bytes": 1271252,
+        "sha256": "8f852c2c033529bdc3c30c55279298449ce2d405f4c8c60587b3c650ce72b961"
+      },
+      {
+        "path": "DATA/Protected.dta",
+        "bytes": 4559757,
+        "sha256": "e5f27bf93dcb1ea3b2c6a47887e2787825d6371e417a99755b32781aa2e013df"
+      },
+      {
+        "path": "DATA/Resident.dta",
+        "bytes": 6187866,
+        "sha256": "8fea421798a4819a11c319e4d9673a0e60009564f7464e6c04907251df8660a6"
+      },
+      {
+        "path": "DATA/Richeven.dta",
+        "bytes": 6720345,
+        "sha256": "cc47c820f89dc29d70ecaa5667c72d13065bf58f5e6aa342e5fcb9a6afd1f2a4"
+      },
+      {
+        "path": "DATA/Small_flock.dta",
+        "bytes": 6270297,
+        "sha256": "19b2773594d644e6284802e262ae6d22244c87e7112b5689e42e94fec55bd16d"
+      },
+      {
+        "path": "DATA/TD.dta",
+        "bytes": 4541809,
+        "sha256": "eaf52dca74fff82e8c184ae1ae44ffe98bd5b390d2c46f954bb0161c9d5f1595"
+      },
+      {
+        "path": "DATA/Windexp.dta",
+        "bytes": 395735,
+        "sha256": "8e3d60b712f31b66ca230d367c0098ff96aadcbf9f9b424c49692239ac6558ef"
+      },
+      {
+        "path": "DATA/air.dta",
+        "bytes": 3676220,
+        "sha256": "b59782f4178bca48276d16071a76780abaf4f6e4ec73f54125d5be9279038a38"
+      },
+      {
+        "path": "DATA/baseline.dta",
+        "bytes": 2047799,
+        "sha256": "91e7b143acbe08aff38af28fbdd3f449b3068f2d47ba4c0104215d57def595df"
+      },
+      {
+        "path": "DATA/cities.dta",
+        "bytes": 3835,
+        "sha256": "d1b260a67705620584e7f00d7e73c8f4a6bd3431b80f7fcf3d8cf52244f4ec30"
+      },
+      {
+        "path": "DATA/enin.dta",
+        "bytes": 10845,
+        "sha256": "d25c62412e78610d43c1d68f8cfd9e72023258b3d9b30064ea0e201c39aa82c3"
+      },
+      {
+        "path": "DATA/highPI.dta",
+        "bytes": 81262,
+        "sha256": "253b486f25cb73c31b21a53906afc6bae1df68a9cf213a0101ada8724261928a"
+      },
+      {
+        "path": "DATA/non_Endemic.dta",
+        "bytes": 6293130,
+        "sha256": "03c6178e0cfffaf98f6450e85b7942ce198b2523183876260d470a6913febcff"
+      },
+      {
+        "path": "DATA/non_Herbivorous.dta",
+        "bytes": 6298548,
+        "sha256": "ecf6c93a5b2d9efb4863fe005a1d3ac32469b0deb7deb657ed4b1789b3c00856"
+      },
+      {
+        "path": "DATA/non_Protected.dta",
+        "bytes": 6219471,
+        "sha256": "b0aa2c649ce30f57671c7e05c67a364f4525a13adadfa45f8dca55a73f23a82a"
+      },
+      {
+        "path": "DATA/north_region.dta",
+        "bytes": 2160,
+        "sha256": "3d155acba9d4283f3a670fff5bc1c9b040e7c5ed9283c11b404f34527e53c9b2"
+      },
+      {
+        "path": "DATA/poverty.dta",
+        "bytes": 145469,
+        "sha256": "62652ef16c2e9117458f6022296c826d0c3fe3c7e508575fe5501f96e5b82de5"
+      },
+      {
+        "path": "DATA/sunshine.dta",
+        "bytes": 9397141,
+        "sha256": "cdf34bb674bd78f545a9370a0308621496440e20aa4b83a2e45613f00c6ce72d"
+      },
+      {
+        "path": "DATA.rar",
+        "bytes": 14411341,
+        "sha256": "9e3bacf214dee31835b4134cac0b9f88c726ae00152ea6a7dab23331e7287821"
+      },
+      {
+        "path": "Documents/CCPU_exogeneity.rtf",
+        "bytes": 6093,
+        "sha256": "76ba76fbae55b75f986b182ee2c0080a8728caa0d175993736f76e44a51d3e25"
+      },
+      {
+        "path": "Documents/CPU_annual_summary.rtf",
+        "bytes": 61331,
+        "sha256": "bc63c481104e6624098dc52967aa32d1b3ebb3bb53522db989d9f916d3aff505"
+      },
+      {
+        "path": "Documents/CPU_within_variation.rtf",
+        "bytes": 50703,
+        "sha256": "a1a1794f200c051208fa1152729c06bae967fbc4d702b0fb4b65d84d015aacee"
+      },
+      {
+        "path": "Documents/FIGS1.pdf",
+        "bytes": 43263,
+        "sha256": "2c9bc6a8b295f3e97ba6fffa5c7bd40ce534c2024237435a75c26e4cee4b94d5"
+      },
+      {
+        "path": "Documents/FIGS2.pdf",
+        "bytes": 38258,
+        "sha256": "4121fe74ecd6630c779a135bb3bdf86b71f6ac36c887c5549be2cb73af3f7ed4"
+      },
+      {
+        "path": "Documents/IV.rtf",
+        "bytes": 6442,
+        "sha256": "43e563538bac4a494156ff9c991312d30c0c8d1f2877b0e7050cbd27879d2e32"
+      },
+      {
+        "path": "Documents/SSIV_table1.rtf",
+        "bytes": 11359,
+        "sha256": "7ce90ee8f17098d65c0dfcbaedbc4e0a68cec407d57c642f1153f266dbfea8eb"
+      },
+      {
+        "path": "Documents/SSIV_table2.rtf",
+        "bytes": 12601,
+        "sha256": "ef87def6c64a177b843c3c5296bc373ab10eb51bfbf4117a45c257678ea23c05"
+      },
+      {
+        "path": "Documents/baseline.rtf",
+        "bytes": 6751,
+        "sha256": "12e247545027007fc2597c0c7f34b26096181b727c503bd507677f8013ced87c"
+      },
+      {
+        "path": "Documents/heterogeneity1.rtf",
+        "bytes": 10750,
+        "sha256": "05c70cd6bd4bf5ab61d47a4181edbcefbe5c52dbc48a289e41380308a42cbfd6"
+      },
+      {
+        "path": "Documents/heterogeneity2.rtf",
+        "bytes": 11075,
+        "sha256": "9bb694aba8136406d8585d3145b1434dd17d4f53ee8454fee450979e1a7aceae"
+      },
+      {
+        "path": "Documents/heterogeneity3.rtf",
+        "bytes": 9334,
+        "sha256": "bdce64b811ea07b3d804e52a70cd95ce9e005578f55ca3d3f624a742e1f2f62d"
+      },
+      {
+        "path": "Documents/mechenism.rtf",
+        "bytes": 7307,
+        "sha256": "88c31d733e9d7c6e9ffb24d3a6e3eaef8a22b10830fd77c7a1915941e7d45d44"
+      },
+      {
+        "path": "Documents/outcomes.rtf",
+        "bytes": 9292,
+        "sha256": "90ebde95fce435d71ad4ce6aeb60064a35efc333572dad91c93947dff7dba1a1"
+      },
+      {
+        "path": "Documents/psm.rtf",
+        "bytes": 7014,
+        "sha256": "104d7abc6cd6fc7f2153a0f298203f4c9f6d724c784627566fe0285a56214b26"
+      },
+      {
+        "path": "Documents/robust_alternative_model.rtf",
+        "bytes": 7218,
+        "sha256": "1485412599d345b62ca6ecd17d65ff2b7af7728c8a5cd327f69ab202ed825384"
+      },
+      {
+        "path": "Documents/robust_alternative_var.rtf",
+        "bytes": 18590,
+        "sha256": "9b35ea9f716bed7378f6abb275d631e2c5db81c78409c4e02dc7a3db3d6de97e"
+      },
+      {
+        "path": "Documents/robust_eliminate_policy.rtf",
+        "bytes": 12071,
+        "sha256": "0fbfd1c706ecc450bdd9a1ca3963850ea7afeddb06419796b0d680f1b2b1078f"
+      },
+      {
+        "path": "Documents/robust_other.rtf",
+        "bytes": 7379,
+        "sha256": "a42efabe95509e66437eaf1be22ed09880d3030dc14c473bb52d54e5bb02f88f"
+      },
+      {
+        "path": "Documents/robust_other2.rtf",
+        "bytes": 8444,
+        "sha256": "0454ed55ac16d39f2a9b985bdab934d49be4685a4aea08e6ecbb17efbe6863e5"
+      },
+      {
+        "path": "Documents/sum_stats.rtf",
+        "bytes": 136077,
+        "sha256": "1063500e8c151b5bf381db994c767be17cd74c8f83233da56847b74e34e38836"
+      },
+      {
+        "path": "Documents/summary.docx",
+        "bytes": 7120,
+        "sha256": "70be33da9b0f0137b61f4b6206013400955bdee8ec1d8eef73c39964e503f0ee"
+      },
+      {
+        "path": "Documents/~$IV_table1.rtf",
+        "bytes": 162,
+        "sha256": "3b4947cb41ea7621ca84a7734193f9de489bb5043fa3bcbdc78370549f4e542e"
+      },
+      {
+        "path": "Documents.rar",
+        "bytes": 143378,
+        "sha256": "1da5c5a869d38ffd1fa5da68cd64c5d773c3094afa58bc0c1b1491b552b70b6a"
+      },
+      {
+        "path": "README.md",
+        "bytes": 8470,
+        "sha256": "16d9ca4a00e141b00995c77773dd555c9532cceb5179bab0afbb152706078975"
+      }
+    ],
+    "package_sha256": "c6493406bf40a68584f02ae3dacb89917a0cd01be8d3e8ba601d2a431bcf2c81"
+  },
+  "notes": "Pilot audit. Claims table entered by the maintainer from the published tables."
+}

@@ -1,0 +1,137 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><title>Replication audit — Zhang et al. (2026), China&#x27;s solar expansion policy reduces bird diversity, Science 393:831</title>
+<meta name='viewport' content='width=device-width,initial-scale=1'><style>
+body{font:15px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;color:#1f2328;max-width:1060px;margin:32px auto;padding:0 20px}
+h1{font-size:26px;margin:0 0 4px} h2{font-size:19px;margin:36px 0 10px;border-bottom:1px solid #d8dee4;padding-bottom:6px}
+h3{font-size:16px;margin:24px 0 6px}.muted{color:#59636e}.tiles{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+.tile{border:1px solid #d8dee4;border-radius:10px;padding:12px 16px;min-width:120px}.tile b{display:block;font-size:24px}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:6px 8px;border-bottom:1px solid #eaeef2;text-align:left;vertical-align:top}
+th{background:#f6f8fa}td.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.badge{display:inline-block;border-radius:999px;padding:1px 9px;color:#fff;font-size:12px;white-space:nowrap}
+details{margin:6px 0}pre{background:#f6f8fa;padding:10px;border-radius:8px;overflow:auto;font-size:12px;max-height:420px}
+.warn{background:#fff8e6;border:1px solid #f0d58c;border-radius:8px;padding:10px 14px}
+</style></head><body>
+<h1>Replication audit</h1><div class='muted'>Zhang et al. (2026), China&#x27;s solar expansion policy reduces bird diversity, Science 393:831 · model backend: replay · run 2026-11-26 19:44</div>
+<p class='warn'>Demo run: the model answers were written by Claude in a chat session and saved as fixtures (no API key was used). Paper values are from the published tables.</p>
+<div class='tiles'>
+<div class='tile'><b>9</b>claims checked</div>
+<div class='tile'><b style='color:#1a7f37'>9</b>Reproduced (matches to the reported precision)</div>
+</div>
+<p><b>Data preparation:</b> built after 1 attempt(s) — 46528 rows.</p>
+<h2>Claims</h2><table><tr><th>ID</th><th>Claim</th><th>Paper b (se)</th><th>Rebuilt b (se)</th><th>N</th><th>Verdict</th><th>Tries</th></tr>
+<tr><td>T1c1</td><td>Table 1 col 1: ShannonBD on PSI, county + year-month FE, no controls</td><td class='num'>-.0157*** (.0037)</td><td class='num'>-0.0157*** (0.0037)</td><td class='num'>46371</td><td><span class="badge" style="background:#1a7f37">Reproduced (matches to the reported precision)</span></td><td class='num'>1</td></tr>
+<tr><td>T1c2</td><td>Table 1 col 2: ShannonBD on PSI, 5 controls (Temp Wind Pop Duration Carbon)</td><td class='num'>-.0127*** (.0036)</td><td class='num'>-0.0127*** (0.0036)</td><td class='num'>46371</td><td><span class="badge" style="background:#1a7f37">Reproduced (matches to the reported precision)</span></td><td class='num'>1</td></tr>
+<tr><td>T1c3</td><td>Table 1 col 3 (headline): ShannonBD on PSI, all 9 controls, county + year-month FE, SE clustered by county</td><td class='num'>-.0125*** (.0037)</td><td class='num'>-0.0125*** (0.0037)</td><td class='num'>46371</td><td><span class="badge" style="background:#1a7f37">Reproduced (matches to the reported precision)</span></td><td class='num'>2</td></tr>
+<tr><td>S7fs</td><td>Table S7 first stage: PSI on Sun_ccpu (ln sunshine / city CPU), 9 controls, keepsingleton</td><td class='num'>.0252*** (.0046)</td><td class='num'>0.0252*** (0.0046)</td><td class='num'>37503</td><td><span class="badge" style="background:#1a7f37">Reproduced (matches to the reported precision)</span></td><td class='num'>1</td></tr>
+<tr><td>S7ss</td><td>Table S7 second stage: IV estimate of PSI on ShannonBD, instrument Sun_ccpu</td><td class='num'>-.1264*** (.0347)</td><td class='num'>-0.1264*** (0.0347)</td><td class='num'>37503</td><td><span class="badge" style="background:#1a7f37">Reproduced (matches to the reported precision)</span></td><td class='num'>1</td></tr>
+<tr><td>S12c8</td><td>Table S12 col 8: alternative outcome SimpsonBD on PSI, 9 controls</td><td class='num'>-.0014* (.0008)</td><td class='num'>-0.0014* (0.0008)</td><td class='num'>46371</td><td><span class="badge" style="background:#1a7f37">Reproduced (matches to the reported precision)</span></td><td class='num'>1</td></tr>
+<tr><td>T2ndvi</td><td>Table 2 col 1: mechanism, NDVI (x100) on PSI, 9 controls</td><td class='num'>-.0609*** (.0138)</td><td class='num'>-0.0609*** (0.0138)</td><td class='num'>46371</td><td><span class="badge" style="background:#1a7f37">Reproduced (matches to the reported precision)</span></td><td class='num'>1</td></tr>
+<tr><td>T2nl</td><td>Table 2 col 2: mechanism, Nightlight on PSI, 9 controls</td><td class='num'>-.222*** (.0256)</td><td class='num'>-0.2220*** (0.0256)</td><td class='num'>46371</td><td><span class="badge" style="background:#1a7f37">Reproduced (matches to the reported precision)</span></td><td class='num'>1</td></tr>
+<tr><td>T2lai</td><td>Table 2 col 3: mechanism, Leaf area index on PSI, 9 controls</td><td class='num'>.0039*** (.0007)</td><td class='num'>0.0039*** (0.0007)</td><td class='num'>46338</td><td><span class="badge" style="background:#1a7f37">Reproduced (matches to the reported precision)</span></td><td class='num'>1</td></tr>
+</table>
+<h2>Robustness checks</h2><p class='muted'>Blue: same sign and significant at 5%. Red: not. Lines are 95% intervals.</p>
+<h3>T1c3: Table 1 col 3 (headline): ShannonBD on PSI, all 9 controls, county + year-month FE, SE clustered by county</h3>
+<p>9 variants ran (0 failed). Same sign in <b>78%</b>; same sign and significant at 5% in <b>67%</b>. Estimates range -0.0154 to 0.0032. <b style='color:#c62828'>Fragile result.</b></p>
+<svg viewBox="0 0 860 280" width="100%" role="img" aria-label="estimates with 95% intervals"><line x1="663.1" y1="8" x2="663.1" y2="252" stroke="#8c959f" stroke-dasharray="4 3"/><text x="290" y="24" text-anchor="end" font-size="12" fill="#1f2328">Rebuilt original</text><line x1="392.5" y1="20" x2="589.4" y2="20" stroke="#1f2328" stroke-width="2"/><circle cx="490.9" cy="20" r="4.5" fill="#1f2328"/><text x="290" y="48" text-anchor="end" font-size="12" fill="#1f2328">Drop effort control (Duration)</text><line x1="350.2" y1="44" x2="552.0" y2="44" stroke="#0969da" stroke-width="2"/><circle cx="451.1" cy="44" r="4.5" fill="#0969da"/><text x="290" y="72" text-anchor="end" font-size="12" fill="#1f2328">Add log number of birdwatchers</text><line x1="621.5" y1="68" x2="793.4" y2="68" stroke="#c62828" stroke-width="2"/><circle cx="707.5" cy="68" r="4.5" fill="#c62828"/><text x="290" y="96" text-anchor="end" font-size="12" fill="#1f2328">Add log total birdwatching hours</text><line x1="589.8" y1="92" x2="763.8" y2="92" stroke="#c62828" stroke-width="2"/><circle cx="676.8" cy="92" r="4.5" fill="#c62828"/><text x="290" y="120" text-anchor="end" font-size="12" fill="#1f2328">Flexible effort: observer-count bins</text><line x1="561.8" y1="116" x2="723.3" y2="116" stroke="#c62828" stroke-width="2"/><circle cx="642.5" cy="116" r="4.5" fill="#c62828"/><text x="290" y="144" text-anchor="end" font-size="12" fill="#1f2328">Only county-months with 5+ birdwatchers</text><line x1="364.9" y1="140" x2="618.9" y2="140" stroke="#0969da" stroke-width="2"/><circle cx="491.9" cy="140" r="4.5" fill="#0969da"/><text x="290" y="168" text-anchor="end" font-size="12" fill="#1f2328">Outcome not winsorized</text><line x1="393.6" y1="164" x2="590.8" y2="164" stroke="#0969da" stroke-width="2"/><circle cx="492.2" cy="164" r="4.5" fill="#0969da"/><text x="290" y="192" text-anchor="end" font-size="12" fill="#1f2328">Cluster SE by city</text><line x1="367.6" y1="188" x2="614.2" y2="188" stroke="#0969da" stroke-width="2"/><circle cx="490.9" cy="188" r="4.5" fill="#0969da"/><text x="290" y="216" text-anchor="end" font-size="12" fill="#1f2328">Province x year-month fixed effects</text><line x1="336.6" y1="212" x2="587.6" y2="212" stroke="#0969da" stroke-width="2"/><circle cx="462.1" cy="212" r="4.5" fill="#0969da"/><text x="290" y="240" text-anchor="end" font-size="12" fill="#1f2328">Drop 2014-2016</text><line x1="416.7" y1="236" x2="615.1" y2="236" stroke="#0969da" stroke-width="2"/><circle cx="515.9" cy="236" r="4.5" fill="#0969da"/><text x="300.0" y="270" text-anchor="middle" font-size="11" fill="#59636e">-0.0264</text><text x="663.1" y="270" text-anchor="middle" font-size="11" fill="#59636e">0.0000</text><text x="830.0" y="270" text-anchor="middle" font-size="11" fill="#59636e">0.0121</text></svg>
+<table><tr><th>Variant</th><th>Why</th><th>b</th><th>se</th><th>N</th></tr>
+<tr><td>Drop effort control (Duration)</td><td>Shows how much the estimate leans on the one effort control.</td><td class='num'>-0.0154***</td><td class='num'>0.0037</td><td class='num'>46371</td></tr>
+<tr><td>Add log number of birdwatchers</td><td>Observer counts drive recorded diversity; the comments on the paper argue this is the key confounder.</td><td class='num'>0.0032</td><td class='num'>0.0032</td><td class='num'>46371</td></tr>
+<tr><td>Add log total birdwatching hours</td><td>Total effort, not effort per person, sets how many species get recorded.</td><td class='num'>0.0010</td><td class='num'>0.0032</td><td class='num'>46371</td></tr>
+<tr><td>Flexible effort: observer-count bins</td><td>Non-parametric control for observers, in case the log form is wrong.</td><td class='num'>-0.0015</td><td class='num'>0.0030</td><td class='num'>46371</td></tr>
+<tr><td>Only county-months with 5+ birdwatchers</td><td>Drops thinly observed cells where Shannon diversity is mostly noise.</td><td class='num'>-0.0125***</td><td class='num'>0.0047</td><td class='num'>13087</td></tr>
+<tr><td>Outcome not winsorized</td><td>Checks that the 1/99 winsorizing does not drive the result.</td><td class='num'>-0.0124***</td><td class='num'>0.0037</td><td class='num'>46371</td></tr>
+<tr><td>Cluster SE by city</td><td>Policy is partly set at city level, so errors may correlate within cities.</td><td class='num'>-0.0125***</td><td class='num'>0.0046</td><td class='num'>46371</td></tr>
+<tr><td>Province x year-month fixed effects</td><td>Absorbs province-wide shocks such as provincial policy and reporting campaigns.</td><td class='num'>-0.0146***</td><td class='num'>0.0047</td><td class='num'>46076</td></tr>
+<tr><td>Drop 2014-2016</td><td>Early years have very few records on the platform.</td><td class='num'>-0.0107***</td><td class='num'>0.0037</td><td class='num'>41985</td></tr>
+</table>
+<h2>Scripts</h2><p class='muted'>Every number above comes from these scripts, saved in <code>scripts/</code>. Model prompts and answers are in <code>llm_log/</code>, so the run can be replayed exactly.</p>
+<details><summary>T1c1 — rebuild__T1c1__attempt1.py</summary><pre>import json, os, warnings
+import pandas as pd
+import pyfixest as pf
+warnings.filterwarnings(&quot;ignore&quot;)
+df = pd.read_parquet(os.path.join(os.environ[&quot;WORK_DIR&quot;], &quot;analysis.parquet&quot;))
+d = df
+# reghdfe ShannonBD PI, absorb(county ym) cluster(...)
+m = pf.feols(&quot;ShannonBD ~ PI | county + ym&quot;, d, vcov={&quot;CRV1&quot;: &quot;county&quot;}, fixef_rm=&quot;singleton&quot;)
+print(&quot;RESULT_JSON: &quot; + json.dumps({&quot;b&quot;: float(m.coef()[&quot;PI&quot;]), &quot;se&quot;: float(m.se()[&quot;PI&quot;]), &quot;n&quot;: int(m._N)}))
+</pre></details>
+<details><summary>T1c2 — rebuild__T1c2__attempt1.py</summary><pre>import json, os, warnings
+import pandas as pd
+import pyfixest as pf
+warnings.filterwarnings(&quot;ignore&quot;)
+df = pd.read_parquet(os.path.join(os.environ[&quot;WORK_DIR&quot;], &quot;analysis.parquet&quot;))
+d = df
+# reghdfe ShannonBD PI Temp Wind Pop Duration Carbon, absorb(county ym) cluster(...)
+m = pf.feols(&quot;ShannonBD ~ PI + Temp + Wind + Pop + Duration + Carbon | county + ym&quot;, d, vcov={&quot;CRV1&quot;: &quot;county&quot;}, fixef_rm=&quot;singleton&quot;)
+print(&quot;RESULT_JSON: &quot; + json.dumps({&quot;b&quot;: float(m.coef()[&quot;PI&quot;]), &quot;se&quot;: float(m.se()[&quot;PI&quot;]), &quot;n&quot;: int(m._N)}))
+</pre></details>
+<details><summary>T1c3 — rebuild__T1c3__attempt2.py</summary><pre>import json, os, warnings
+import pandas as pd
+import pyfixest as pf
+warnings.filterwarnings(&quot;ignore&quot;)
+df = pd.read_parquet(os.path.join(os.environ[&quot;WORK_DIR&quot;], &quot;analysis.parquet&quot;))
+d = df
+# reghdfe ShannonBD PI Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)
+m = pf.feols(&quot;ShannonBD ~ PI + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym&quot;, d, vcov={&quot;CRV1&quot;: &quot;county&quot;}, fixef_rm=&quot;singleton&quot;)
+print(&quot;RESULT_JSON: &quot; + json.dumps({&quot;b&quot;: float(m.coef()[&quot;PI&quot;]), &quot;se&quot;: float(m.se()[&quot;PI&quot;]), &quot;n&quot;: int(m._N)}))
+</pre></details>
+<details><summary>S7fs — rebuild__S7fs__attempt1.py</summary><pre>import json, os, warnings
+import pandas as pd
+import pyfixest as pf
+warnings.filterwarnings(&quot;ignore&quot;)
+df = pd.read_parquet(os.path.join(os.environ[&quot;WORK_DIR&quot;], &quot;analysis.parquet&quot;))
+d = df
+# reghdfe PI Sun_ccpu Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)
+m = pf.feols(&quot;PI ~ Sun_ccpu + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym&quot;, d, vcov={&quot;CRV1&quot;: &quot;county&quot;}, fixef_rm=&quot;none&quot;)
+print(&quot;RESULT_JSON: &quot; + json.dumps({&quot;b&quot;: float(m.coef()[&quot;Sun_ccpu&quot;]), &quot;se&quot;: float(m.se()[&quot;Sun_ccpu&quot;]), &quot;n&quot;: int(m._N)}))
+</pre></details>
+<details><summary>S7ss — rebuild__S7ss__attempt1.py</summary><pre>import json, os, warnings
+import pandas as pd
+import pyfixest as pf
+warnings.filterwarnings(&quot;ignore&quot;)
+df = pd.read_parquet(os.path.join(os.environ[&quot;WORK_DIR&quot;], &quot;analysis.parquet&quot;))
+d = df
+# ivreghdfe ShannonBD (PI = Sun_ccpu) controls, absorb(county year) cluster(county) keepsingleton
+m = pf.feols(&quot;ShannonBD ~ Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym | PI ~ Sun_ccpu&quot;, d, vcov={&quot;CRV1&quot;: &quot;county&quot;}, fixef_rm=&quot;none&quot;)
+print(&quot;RESULT_JSON: &quot; + json.dumps({&quot;b&quot;: float(m.coef()[&quot;PI&quot;]), &quot;se&quot;: float(m.se()[&quot;PI&quot;]), &quot;n&quot;: int(m._N)}))
+</pre></details>
+<details><summary>S12c8 — rebuild__S12c8__attempt1.py</summary><pre>import json, os, warnings
+import pandas as pd
+import pyfixest as pf
+warnings.filterwarnings(&quot;ignore&quot;)
+df = pd.read_parquet(os.path.join(os.environ[&quot;WORK_DIR&quot;], &quot;analysis.parquet&quot;))
+d = df
+# reghdfe SimpsonBD PI Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)
+m = pf.feols(&quot;SimpsonBD ~ PI + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym&quot;, d, vcov={&quot;CRV1&quot;: &quot;county&quot;}, fixef_rm=&quot;singleton&quot;)
+print(&quot;RESULT_JSON: &quot; + json.dumps({&quot;b&quot;: float(m.coef()[&quot;PI&quot;]), &quot;se&quot;: float(m.se()[&quot;PI&quot;]), &quot;n&quot;: int(m._N)}))
+</pre></details>
+<details><summary>T2ndvi — rebuild__T2ndvi__attempt1.py</summary><pre>import json, os, warnings
+import pandas as pd
+import pyfixest as pf
+warnings.filterwarnings(&quot;ignore&quot;)
+df = pd.read_parquet(os.path.join(os.environ[&quot;WORK_DIR&quot;], &quot;analysis.parquet&quot;))
+d = df
+# reghdfe Ndvi PI Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)
+m = pf.feols(&quot;Ndvi ~ PI + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym&quot;, d, vcov={&quot;CRV1&quot;: &quot;county&quot;}, fixef_rm=&quot;singleton&quot;)
+print(&quot;RESULT_JSON: &quot; + json.dumps({&quot;b&quot;: float(m.coef()[&quot;PI&quot;]), &quot;se&quot;: float(m.se()[&quot;PI&quot;]), &quot;n&quot;: int(m._N)}))
+</pre></details>
+<details><summary>T2nl — rebuild__T2nl__attempt1.py</summary><pre>import json, os, warnings
+import pandas as pd
+import pyfixest as pf
+warnings.filterwarnings(&quot;ignore&quot;)
+df = pd.read_parquet(os.path.join(os.environ[&quot;WORK_DIR&quot;], &quot;analysis.parquet&quot;))
+d = df
+# reghdfe Nightlight PI Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)
+m = pf.feols(&quot;Nightlight ~ PI + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym&quot;, d, vcov={&quot;CRV1&quot;: &quot;county&quot;}, fixef_rm=&quot;singleton&quot;)
+print(&quot;RESULT_JSON: &quot; + json.dumps({&quot;b&quot;: float(m.coef()[&quot;PI&quot;]), &quot;se&quot;: float(m.se()[&quot;PI&quot;]), &quot;n&quot;: int(m._N)}))
+</pre></details>
+<details><summary>T2lai — rebuild__T2lai__attempt1.py</summary><pre>import json, os, warnings
+import pandas as pd
+import pyfixest as pf
+warnings.filterwarnings(&quot;ignore&quot;)
+df = pd.read_parquet(os.path.join(os.environ[&quot;WORK_DIR&quot;], &quot;analysis.parquet&quot;))
+d = df
+# reghdfe LAI PI Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)
+m = pf.feols(&quot;LAI ~ PI + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym&quot;, d, vcov={&quot;CRV1&quot;: &quot;county&quot;}, fixef_rm=&quot;singleton&quot;)
+print(&quot;RESULT_JSON: &quot; + json.dumps({&quot;b&quot;: float(m.coef()[&quot;PI&quot;]), &quot;se&quot;: float(m.se()[&quot;PI&quot;]), &quot;n&quot;: int(m._N)}))
+</pre></details>
+</body></html>

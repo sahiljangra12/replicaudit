@@ -1,0 +1,10 @@
+pandas
+numpy
+pyfixest
+statsmodels
+pyarrow
+pypdf
+anthropic
+openai
+unrar-cffi
+py7zr

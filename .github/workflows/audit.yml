@@ -1,0 +1,85 @@
+name: Run audit
+
+# A maintainer adds the label "run-audit" to an audit request. The audit runs in a job with
+# read-only repository access, and its results come back as a pull request for human review.
+on:
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: audit-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    if: github.event.label.name == 'run-audit' && github.event.sender.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: read
+    outputs:
+      slug: ${{ steps.audit.outputs.slug }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Run the audit
+        id: audit
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          REPLICAUDIT_MODEL: ${{ vars.REPLICAUDIT_MODEL }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+        run: |
+          printf '%s' "$ISSUE_BODY" > "$RUNNER_TEMP/issue.md"
+          python -m replicaudit intake --issue-body "$RUNNER_TEMP/issue.md" \
+            --issue "$ISSUE_NUMBER" --issue-url "$ISSUE_URL" --audits audits | tee "$RUNNER_TEMP/log.txt"
+          dir=$(grep '^AUDIT_DIR=' "$RUNNER_TEMP/log.txt" | tail -1 | cut -d= -f2-)
+          echo "slug=$(basename "$dir")" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audit
+          path: audits/${{ steps.audit.outputs.slug }}
+          include-hidden-files: false
+
+  propose:
+    needs: run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: audit
+          path: audits/${{ needs.run.outputs.slug }}
+      - uses: peter-evans/create-pull-request@v7
+        id: pr
+        with:
+          branch: audit/issue-${{ github.event.issue.number }}
+          commit-message: "Audit: ${{ needs.run.outputs.slug }} (#${{ github.event.issue.number }})"
+          title: "Audit: ${{ github.event.issue.title }}"
+          body: |
+            Automated audit for #${{ github.event.issue.number }}.
+
+            **Before merging:**
+            - [ ] Claims list checked against the paper and supplement
+            - [ ] Scripts behind every non-reproduced verdict read
+            - [ ] Robustness variants are defensible alternatives (remove any that are not)
+            - [ ] `review.md` written (reviewer, date, assessment)
+            - [ ] Corresponding authors contacted; `authors_contacted` date set in `submission.json`
+            - [ ] After 14 days (or a response): `status` set to `published`; response saved as `author_response.md` if any
+          labels: audit-result
+      - name: Comment on the request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE" --body "The audit has run. Results are in $PR_URL for review. They will be published after a reviewer has checked them and the authors have been invited to respond."

@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use ReplicAudit or cite an audit, please cite it as below."
+title: "ReplicAudit: automated replication audits of empirical research"
+authors:
+  - name: "Sahil"
+    affiliation: "Johns Hopkins University"
+    email: "sfnu1@jh.edu"
+version: "0.2.0"
+date-released: "2026-11-26"
+license: MIT
+repository-code: "https://github.com/sahiljangra12/replicaudit"
+url: "https://sahiljangra12.github.io/replicaudit/"
+keywords: [reproducibility, replication, robustness, open science, large language models]

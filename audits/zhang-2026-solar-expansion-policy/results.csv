@@ -1,0 +1,10 @@
+id,description,paper_b,paper_se,rebuilt_b,rebuilt_se,rebuilt_n,verdict,attempts,robust_checks,share_robust_sig05
+T1c1,"Table 1 col 1: ShannonBD on PSI, county + year-month FE, no controls",-.0157,.0037,-0.015748967079672216,0.003690273926058337,46371,exact,1,,
+T1c2,"Table 1 col 2: ShannonBD on PSI, 5 controls (Temp Wind Pop Duration Carbon)",-.0127,.0036,-0.01269398158554847,0.0036258919663674865,46371,exact,1,,
+T1c3,"Table 1 col 3 (headline): ShannonBD on PSI, all 9 controls, county + year-month FE, SE clustered by county",-.0125,.0037,-0.012528280576776917,0.003655086987942955,46371,exact,2,9,0.6666666666666666
+S7fs,"Table S7 first stage: PSI on Sun_ccpu (ln sunshine / city CPU), 9 controls, keepsingleton",.0252,.0046,0.025204243049637837,0.004587852092577248,37503,exact,1,,
+S7ss,"Table S7 second stage: IV estimate of PSI on ShannonBD, instrument Sun_ccpu",-.1264,.0347,-0.12636797260259072,0.03468316827436644,37503,exact,1,,
+S12c8,"Table S12 col 8: alternative outcome SimpsonBD on PSI, 9 controls",-.0014,.0008,-0.0013507809938032515,0.000811357177761714,46371,exact,1,,
+T2ndvi,"Table 2 col 1: mechanism, NDVI (x100) on PSI, 9 controls",-.0609,.0138,-0.06092257455360353,0.013768942119043448,46371,exact,1,,
+T2nl,"Table 2 col 2: mechanism, Nightlight on PSI, 9 controls",-.222,.0256,-0.22201250387992036,0.025631043149400984,46371,exact,1,,
+T2lai,"Table 2 col 3: mechanism, Leaf area index on PSI, 9 controls",.0039,.0007,0.003935065737367903,0.0007177084332366237,46338,exact,1,,

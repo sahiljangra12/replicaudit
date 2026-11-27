@@ -1,0 +1,477 @@
+{
+  "package": "jianke22/China-s-solar-expansion-policy-reduces-bird-diversity (see provenance)",
+  "paper": null,
+  "backend": "replay",
+  "started": "2026-11-26 19:44",
+  "claims": [
+    {
+      "id": "T1c1",
+      "description": "Table 1 col 1: ShannonBD on PSI, county + year-month FE, no controls",
+      "b": "-.0157",
+      "se": ".0037",
+      "n": "46371",
+      "main": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "script": "rebuild__T1c1__attempt1.py",
+          "seconds": 1.5,
+          "result": {
+            "b": -0.015748967079672216,
+            "se": 0.003690273926058337,
+            "n": 46371
+          }
+        }
+      ],
+      "rebuilt": {
+        "b": -0.015748967079672216,
+        "se": 0.003690273926058337,
+        "n": 46371
+      },
+      "compare": {
+        "diff_b": -4.8967079672217195e-05,
+        "rel_diff": 0.003118922272115745,
+        "p": 1.9750226727330533e-05,
+        "stars": "***",
+        "diff_se": -9.726073941662954e-06,
+        "target_stars": "***",
+        "n_matches": true,
+        "verdict": "exact"
+      },
+      "script": "rebuild__T1c1__attempt1.py",
+      "code": "import json, os, warnings\nimport pandas as pd\nimport pyfixest as pf\nwarnings.filterwarnings(\"ignore\")\ndf = pd.read_parquet(os.path.join(os.environ[\"WORK_DIR\"], \"analysis.parquet\"))\nd = df\n# reghdfe ShannonBD PI, absorb(county ym) cluster(...)\nm = pf.feols(\"ShannonBD ~ PI | county + ym\", d, vcov={\"CRV1\": \"county\"}, fixef_rm=\"singleton\")\nprint(\"RESULT_JSON: \" + json.dumps({\"b\": float(m.coef()[\"PI\"]), \"se\": float(m.se()[\"PI\"]), \"n\": int(m._N)}))\n"
+    },
+    {
+      "id": "T1c2",
+      "description": "Table 1 col 2: ShannonBD on PSI, 5 controls (Temp Wind Pop Duration Carbon)",
+      "b": "-.0127",
+      "se": ".0036",
+      "n": "46371",
+      "main": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "script": "rebuild__T1c2__attempt1.py",
+          "seconds": 1.5,
+          "result": {
+            "b": -0.01269398158554847,
+            "se": 0.0036258919663674865,
+            "n": 46371
+          }
+        }
+      ],
+      "rebuilt": {
+        "b": -0.01269398158554847,
+        "se": 0.0036258919663674865,
+        "n": 46371
+      },
+      "compare": {
+        "diff_b": 6.0184144515286475e-06,
+        "rel_diff": -0.00047389090169516914,
+        "p": 0.00046364354550225596,
+        "stars": "***",
+        "diff_se": 2.5891966367486575e-05,
+        "target_stars": "***",
+        "n_matches": true,
+        "verdict": "exact"
+      },
+      "script": "rebuild__T1c2__attempt1.py",
+      "code": "import json, os, warnings\nimport pandas as pd\nimport pyfixest as pf\nwarnings.filterwarnings(\"ignore\")\ndf = pd.read_parquet(os.path.join(os.environ[\"WORK_DIR\"], \"analysis.parquet\"))\nd = df\n# reghdfe ShannonBD PI Temp Wind Pop Duration Carbon, absorb(county ym) cluster(...)\nm = pf.feols(\"ShannonBD ~ PI + Temp + Wind + Pop + Duration + Carbon | county + ym\", d, vcov={\"CRV1\": \"county\"}, fixef_rm=\"singleton\")\nprint(\"RESULT_JSON: \" + json.dumps({\"b\": float(m.coef()[\"PI\"]), \"se\": float(m.se()[\"PI\"]), \"n\": int(m._N)}))\n"
+    },
+    {
+      "id": "T1c3",
+      "description": "Table 1 col 3 (headline): ShannonBD on PSI, all 9 controls, county + year-month FE, SE clustered by county",
+      "b": "-.0125",
+      "se": ".0037",
+      "n": "46371",
+      "main": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "script": "rebuild__T1c3__attempt1.py",
+          "seconds": 1.4,
+          "result": {
+            "b": -0.012528280576776915,
+            "se": 0.003655020821047481,
+            "n": 46528
+          },
+          "note": "Your estimate b=-0.012528280576776915, se=0.003655020821047481, n=46528 does not match the paper (b=-.0125, se=.0037, N=46371). Re-check the specification, sample and variable construction against the authors' code. Do not force the number."
+        },
+        {
+          "attempt": 2,
+          "script": "rebuild__T1c3__attempt2.py",
+          "seconds": 1.5,
+          "result": {
+            "b": -0.012528280576776917,
+            "se": 0.003655086987942955,
+            "n": 46371
+          }
+        }
+      ],
+      "rebuilt": {
+        "b": -0.012528280576776917,
+        "se": 0.003655086987942955,
+        "n": 46371
+      },
+      "compare": {
+        "diff_b": -2.8280576776916477e-05,
+        "rel_diff": 0.002262446142153318,
+        "p": 0.0006088779118469197,
+        "stars": "***",
+        "diff_se": -4.491301205704519e-05,
+        "target_stars": "***",
+        "n_matches": true,
+        "verdict": "exact"
+      },
+      "script": "rebuild__T1c3__attempt2.py",
+      "code": "import json, os, warnings\nimport pandas as pd\nimport pyfixest as pf\nwarnings.filterwarnings(\"ignore\")\ndf = pd.read_parquet(os.path.join(os.environ[\"WORK_DIR\"], \"analysis.parquet\"))\nd = df\n# reghdfe ShannonBD PI Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)\nm = pf.feols(\"ShannonBD ~ PI + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym\", d, vcov={\"CRV1\": \"county\"}, fixef_rm=\"singleton\")\nprint(\"RESULT_JSON: \" + json.dumps({\"b\": float(m.coef()[\"PI\"]), \"se\": float(m.se()[\"PI\"]), \"n\": int(m._N)}))\n",
+      "robustness": {
+        "variants": [
+          {
+            "name": "Drop effort control (Duration)",
+            "why": "Shows how much the estimate leans on the one effort control.",
+            "script": "robust__T1c3__01.py",
+            "b": -0.015426511975298006,
+            "se": 0.003744797219693141,
+            "n": 46371,
+            "p": 3.797747095068299e-05
+          },
+          {
+            "name": "Add log number of birdwatchers",
+            "why": "Observer counts drive recorded diversity; the comments on the paper argue this is the key confounder.",
+            "script": "robust__T1c3__02.py",
+            "b": 0.0032277842743779466,
+            "se": 0.0031927164344728335,
+            "n": 46371,
+            "p": 0.31202423127417256
+          },
+          {
+            "name": "Add log total birdwatching hours",
+            "why": "Total effort, not effort per person, sets how many species get recorded.",
+            "script": "robust__T1c3__03.py",
+            "b": 0.0009988626045136643,
+            "se": 0.0032292302351012866,
+            "n": 46371,
+            "p": 0.757078799802049
+          },
+          {
+            "name": "Flexible effort: observer-count bins",
+            "why": "Non-parametric control for observers, in case the log form is wrong.",
+            "script": "robust__T1c3__04.py",
+            "b": -0.0014957054184533212,
+            "se": 0.002997763109911331,
+            "n": 46371,
+            "p": 0.6178213029030062
+          },
+          {
+            "name": "Only county-months with 5+ birdwatchers",
+            "why": "Drops thinly observed cells where Shannon diversity is mostly noise.",
+            "script": "robust__T1c3__05.py",
+            "b": -0.012456696530242043,
+            "se": 0.004716189086292789,
+            "n": 13087,
+            "p": 0.008259753234334493
+          },
+          {
+            "name": "Outcome not winsorized",
+            "why": "Checks that the 1/99 winsorizing does not drive the result.",
+            "script": "robust__T1c3__06.py",
+            "b": -0.012438312269537137,
+            "se": 0.0036603985736271163,
+            "n": 46371,
+            "p": 0.0006786158360502425
+          },
+          {
+            "name": "Cluster SE by city",
+            "why": "Policy is partly set at city level, so errors may correlate within cities.",
+            "script": "robust__T1c3__07.py",
+            "b": -0.012528280576776917,
+            "se": 0.0045779737109414975,
+            "n": 46371,
+            "p": 0.0062069575727153135
+          },
+          {
+            "name": "Province x year-month fixed effects",
+            "why": "Absorbs province-wide shocks such as provincial policy and reporting campaigns.",
+            "script": "robust__T1c3__08.py",
+            "b": -0.014626085645320563,
+            "se": 0.004660868892951991,
+            "n": 46076,
+            "p": 0.0017007013372850606
+          },
+          {
+            "name": "Drop 2014-2016",
+            "why": "Early years have very few records on the platform.",
+            "script": "robust__T1c3__09.py",
+            "b": -0.01070981498467226,
+            "se": 0.003682151825505482,
+            "n": 41985,
+            "p": 0.0036307999991266712
+          }
+        ],
+        "summary": {
+          "n": 9,
+          "n_failed": 0,
+          "share_same_sign": 0.7777777777777778,
+          "share_same_sign_sig05": 0.6666666666666666,
+          "min_b": -0.015426511975298006,
+          "max_b": 0.0032277842743779466,
+          "fragile": true
+        }
+      }
+    },
+    {
+      "id": "S7fs",
+      "description": "Table S7 first stage: PSI on Sun_ccpu (ln sunshine / city CPU), 9 controls, keepsingleton",
+      "b": ".0252",
+      "se": ".0046",
+      "n": "37503",
+      "main": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "script": "rebuild__S7fs__attempt1.py",
+          "seconds": 1.4,
+          "result": {
+            "b": 0.025204243049637837,
+            "se": 0.004587852092577248,
+            "n": 37503
+          }
+        }
+      ],
+      "rebuilt": {
+        "b": 0.025204243049637837,
+        "se": 0.004587852092577248,
+        "n": 37503
+      },
+      "compare": {
+        "diff_b": 4.2430496378365046e-06,
+        "rel_diff": 0.0001683749856284327,
+        "p": 3.9361832999921016e-08,
+        "stars": "***",
+        "diff_se": -1.2147907422752069e-05,
+        "target_stars": "***",
+        "n_matches": true,
+        "verdict": "exact"
+      },
+      "script": "rebuild__S7fs__attempt1.py",
+      "code": "import json, os, warnings\nimport pandas as pd\nimport pyfixest as pf\nwarnings.filterwarnings(\"ignore\")\ndf = pd.read_parquet(os.path.join(os.environ[\"WORK_DIR\"], \"analysis.parquet\"))\nd = df\n# reghdfe PI Sun_ccpu Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)\nm = pf.feols(\"PI ~ Sun_ccpu + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym\", d, vcov={\"CRV1\": \"county\"}, fixef_rm=\"none\")\nprint(\"RESULT_JSON: \" + json.dumps({\"b\": float(m.coef()[\"Sun_ccpu\"]), \"se\": float(m.se()[\"Sun_ccpu\"]), \"n\": int(m._N)}))\n"
+    },
+    {
+      "id": "S7ss",
+      "description": "Table S7 second stage: IV estimate of PSI on ShannonBD, instrument Sun_ccpu",
+      "b": "-.1264",
+      "se": ".0347",
+      "n": "37503",
+      "main": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "script": "rebuild__S7ss__attempt1.py",
+          "seconds": 1.7,
+          "result": {
+            "b": -0.12636797260259072,
+            "se": 0.03468316827436644,
+            "n": 37503
+          }
+        }
+      ],
+      "rebuilt": {
+        "b": -0.12636797260259072,
+        "se": 0.03468316827436644,
+        "n": 37503
+      },
+      "compare": {
+        "diff_b": 3.202739740928995e-05,
+        "rel_diff": -0.0002533813086178002,
+        "p": 0.0002689602039003482,
+        "stars": "***",
+        "diff_se": -1.6831725633562056e-05,
+        "target_stars": "***",
+        "n_matches": true,
+        "verdict": "exact"
+      },
+      "script": "rebuild__S7ss__attempt1.py",
+      "code": "import json, os, warnings\nimport pandas as pd\nimport pyfixest as pf\nwarnings.filterwarnings(\"ignore\")\ndf = pd.read_parquet(os.path.join(os.environ[\"WORK_DIR\"], \"analysis.parquet\"))\nd = df\n# ivreghdfe ShannonBD (PI = Sun_ccpu) controls, absorb(county year) cluster(county) keepsingleton\nm = pf.feols(\"ShannonBD ~ Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym | PI ~ Sun_ccpu\", d, vcov={\"CRV1\": \"county\"}, fixef_rm=\"none\")\nprint(\"RESULT_JSON: \" + json.dumps({\"b\": float(m.coef()[\"PI\"]), \"se\": float(m.se()[\"PI\"]), \"n\": int(m._N)}))\n"
+    },
+    {
+      "id": "S12c8",
+      "description": "Table S12 col 8: alternative outcome SimpsonBD on PSI, 9 controls",
+      "b": "-.0014",
+      "se": ".0008",
+      "n": "46371",
+      "main": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "script": "rebuild__S12c8__attempt1.py",
+          "seconds": 1.5,
+          "result": {
+            "b": -0.0013507809938032515,
+            "se": 0.000811357177761714,
+            "n": 46371
+          }
+        }
+      ],
+      "rebuilt": {
+        "b": -0.0013507809938032515,
+        "se": 0.000811357177761714,
+        "n": 46371
+      },
+      "compare": {
+        "diff_b": 4.9219006196748495e-05,
+        "rel_diff": -0.0351564329976775,
+        "p": 0.09594440825390305,
+        "stars": "*",
+        "diff_se": 1.1357177761713911e-05,
+        "target_stars": "*",
+        "n_matches": true,
+        "verdict": "exact"
+      },
+      "script": "rebuild__S12c8__attempt1.py",
+      "code": "import json, os, warnings\nimport pandas as pd\nimport pyfixest as pf\nwarnings.filterwarnings(\"ignore\")\ndf = pd.read_parquet(os.path.join(os.environ[\"WORK_DIR\"], \"analysis.parquet\"))\nd = df\n# reghdfe SimpsonBD PI Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)\nm = pf.feols(\"SimpsonBD ~ PI + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym\", d, vcov={\"CRV1\": \"county\"}, fixef_rm=\"singleton\")\nprint(\"RESULT_JSON: \" + json.dumps({\"b\": float(m.coef()[\"PI\"]), \"se\": float(m.se()[\"PI\"]), \"n\": int(m._N)}))\n"
+    },
+    {
+      "id": "T2ndvi",
+      "description": "Table 2 col 1: mechanism, NDVI (x100) on PSI, 9 controls",
+      "b": "-.0609",
+      "se": ".0138",
+      "n": "46371",
+      "main": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "script": "rebuild__T2ndvi__attempt1.py",
+          "seconds": 1.5,
+          "result": {
+            "b": -0.06092257455360353,
+            "se": 0.013768942119043448,
+            "n": 46371
+          }
+        }
+      ],
+      "rebuilt": {
+        "b": -0.06092257455360353,
+        "se": 0.013768942119043448,
+        "n": 46371
+      },
+      "compare": {
+        "diff_b": -2.2574553603528502e-05,
+        "rel_diff": 0.00037068232518109196,
+        "p": 9.660445899584238e-06,
+        "stars": "***",
+        "diff_se": -3.1057880956551764e-05,
+        "target_stars": "***",
+        "n_matches": true,
+        "verdict": "exact"
+      },
+      "script": "rebuild__T2ndvi__attempt1.py",
+      "code": "import json, os, warnings\nimport pandas as pd\nimport pyfixest as pf\nwarnings.filterwarnings(\"ignore\")\ndf = pd.read_parquet(os.path.join(os.environ[\"WORK_DIR\"], \"analysis.parquet\"))\nd = df\n# reghdfe Ndvi PI Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)\nm = pf.feols(\"Ndvi ~ PI + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym\", d, vcov={\"CRV1\": \"county\"}, fixef_rm=\"singleton\")\nprint(\"RESULT_JSON: \" + json.dumps({\"b\": float(m.coef()[\"PI\"]), \"se\": float(m.se()[\"PI\"]), \"n\": int(m._N)}))\n"
+    },
+    {
+      "id": "T2nl",
+      "description": "Table 2 col 2: mechanism, Nightlight on PSI, 9 controls",
+      "b": "-.222",
+      "se": ".0256",
+      "n": "46371",
+      "main": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "script": "rebuild__T2nl__attempt1.py",
+          "seconds": 1.5,
+          "result": {
+            "b": -0.22201250387992036,
+            "se": 0.025631043149400984,
+            "n": 46371
+          }
+        }
+      ],
+      "rebuilt": {
+        "b": -0.22201250387992036,
+        "se": 0.025631043149400984,
+        "n": 46371
+      },
+      "compare": {
+        "diff_b": -1.2503879920355843e-05,
+        "rel_diff": 5.632378342502632e-05,
+        "p": 4.641287146838421e-18,
+        "stars": "***",
+        "diff_se": 3.10431494009826e-05,
+        "target_stars": "***",
+        "n_matches": true,
+        "verdict": "exact"
+      },
+      "script": "rebuild__T2nl__attempt1.py",
+      "code": "import json, os, warnings\nimport pandas as pd\nimport pyfixest as pf\nwarnings.filterwarnings(\"ignore\")\ndf = pd.read_parquet(os.path.join(os.environ[\"WORK_DIR\"], \"analysis.parquet\"))\nd = df\n# reghdfe Nightlight PI Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)\nm = pf.feols(\"Nightlight ~ PI + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym\", d, vcov={\"CRV1\": \"county\"}, fixef_rm=\"singleton\")\nprint(\"RESULT_JSON: \" + json.dumps({\"b\": float(m.coef()[\"PI\"]), \"se\": float(m.se()[\"PI\"]), \"n\": int(m._N)}))\n"
+    },
+    {
+      "id": "T2lai",
+      "description": "Table 2 col 3: mechanism, Leaf area index on PSI, 9 controls",
+      "b": ".0039",
+      "se": ".0007",
+      "n": "46338",
+      "main": false,
+      "attempts": [
+        {
+          "attempt": 1,
+          "script": "rebuild__T2lai__attempt1.py",
+          "seconds": 1.5,
+          "result": {
+            "b": 0.003935065737367903,
+            "se": 0.0007177084332366237,
+            "n": 46338
+          }
+        }
+      ],
+      "rebuilt": {
+        "b": 0.003935065737367903,
+        "se": 0.0007177084332366237,
+        "n": 46338
+      },
+      "compare": {
+        "diff_b": 3.506573736790277e-05,
+        "rel_diff": 0.00899121470971866,
+        "p": 4.186002453274985e-08,
+        "stars": "***",
+        "diff_se": 1.7708433236623728e-05,
+        "target_stars": "***",
+        "n_matches": true,
+        "verdict": "exact"
+      },
+      "script": "rebuild__T2lai__attempt1.py",
+      "code": "import json, os, warnings\nimport pandas as pd\nimport pyfixest as pf\nwarnings.filterwarnings(\"ignore\")\ndf = pd.read_parquet(os.path.join(os.environ[\"WORK_DIR\"], \"analysis.parquet\"))\nd = df\n# reghdfe LAI PI Temp Wind Pop Duration Carbon Water Green Farm Grass, absorb(county ym) cluster(...)\nm = pf.feols(\"LAI ~ PI + Temp + Wind + Pop + Duration + Carbon + Water + Green + Farm + Grass | county + ym\", d, vcov={\"CRV1\": \"county\"}, fixef_rm=\"singleton\")\nprint(\"RESULT_JSON: \" + json.dumps({\"b\": float(m.coef()[\"PI\"]), \"se\": float(m.se()[\"PI\"]), \"n\": int(m._N)}))\n"
+    }
+  ],
+  "prep": {
+    "ok": true,
+    "attempts": [
+      {
+        "attempt": 1,
+        "script": "prep__attempt1.py",
+        "seconds": 1.0,
+        "result": {
+          "rows": 46528,
+          "cols": 38
+        }
+      }
+    ],
+    "result": {
+      "rows": 46528,
+      "cols": 38
+    }
+  },
+  "title": "Zhang et al. (2026), China's solar expansion policy reduces bird diversity, Science 393:831",
+  "note": "Pilot run. The model's answers in this audit were written by Claude in a chat session and replayed with --backend replay; no API calls were made. Paper values come from the published tables.",
+  "finished": "2026-11-26 19:44",
+  "llm_calls": 12,
+  "environment": {
+    "replicaudit": "0.1.0",
+    "python": "3.13.18",
+    "platform": "Linux-6.18.44-fc-v880-x86_64-with-glibc2.39",
+    "pandas": "3.0.5",
+    "numpy": "2.5.3",
+    "pyfixest": "0.70.0",
+    "statsmodels": "0.15.0"
+  }
+}

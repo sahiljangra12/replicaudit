@@ -1,0 +1,101 @@
+name: Audit request
+description: Ask for a replication audit of a published empirical paper.
+title: "[Audit] "
+labels: ["audit-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for submitting a paper. Everything in this form is public. Please read the [Methods](https://sahiljangra12.github.io/replicaudit/methods.html) and [Policy](https://sahiljangra12.github.io/replicaudit/policy.html) first.
+        **Links are best.** You can also drag files into the text boxes (GitHub accepts .zip and .pdf up to 25 MB).
+  - type: input
+    id: title
+    attributes:
+      label: Paper title
+    validations:
+      required: true
+  - type: input
+    id: authors
+    attributes:
+      label: Authors
+      placeholder: "Zhang, H.; Li, X.; ..."
+    validations:
+      required: true
+  - type: input
+    id: journal
+    attributes:
+      label: Journal and year
+      placeholder: "Science 393:831, 2026"
+    validations:
+      required: true
+  - type: input
+    id: doi
+    attributes:
+      label: Paper DOI
+      placeholder: "10.1126/science.aee0747"
+    validations:
+      required: true
+  - type: textarea
+    id: paper
+    attributes:
+      label: Paper PDF (open-access link or attachment)
+      description: Used to find the reported estimates. It is not stored or redistributed.
+  - type: textarea
+    id: package
+    attributes:
+      label: Replication package
+      description: DOI or link to Zenodo, Dataverse, OSF, a GitHub repository or a direct .zip, or attach a .zip. Archives inside it (.zip/.rar/.7z/.tar.gz) are unpacked automatically. Login-only sources such as openICPSR cannot be fetched.
+      placeholder: "https://doi.org/10.7910/DVN/XXXXXX"
+    validations:
+      required: true
+  - type: textarea
+    id: supplement
+    attributes:
+      label: Supplementary materials
+      description: Link to or attach the supplement PDF if estimates to check are reported there.
+  - type: textarea
+    id: claims
+    attributes:
+      label: Claims to check (optional)
+      description: "One row per estimate: id,description,b,se,n,main. Copy b and se exactly as printed. Mark the headline result main=true. If left empty, estimates are extracted from the PDF and checked by a reviewer."
+      render: csv
+      placeholder: |
+        id,description,b,se,n,main
+        T1c3,"Table 1 col 3: outcome on treatment, all controls",-.0125,.0037,46371,true
+  - type: dropdown
+    id: field
+    attributes:
+      label: Field
+      options:
+        - Ecology & biodiversity
+        - Climate & energy
+        - Environmental economics & policy
+        - Environment & health
+        - Agriculture & land use
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: relationship
+    attributes:
+      label: Your relationship to the paper
+      options:
+        - I am an author
+        - Not an author
+        - Author of a related or competing paper
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes for the auditors
+      description: Anything that helps, e.g. which script makes which table, or restricted data that cannot be shared.
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: The replication materials are publicly available and I am allowed to point to them.
+          required: true
+        - label: I understand that the audit, once reviewed, is published openly and that the authors are invited to respond.
+          required: true
