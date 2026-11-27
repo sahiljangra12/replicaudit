@@ -79,3 +79,24 @@ def test_upload_reference_links():
     from replicaudit.intake import all_links, first_link
     assert first_link("upload://0123456789abcdef/paper.pdf") == "upload://0123456789abcdef/paper.pdf"
     assert all_links("upload://0123456789abcdef/S1.csv\nhttps://j.org/sm.pdf") == ["upload://0123456789abcdef/S1.csv", "https://j.org/sm.pdf"]
+
+
+def test_check_material():
+    from replicaudit.intake import check_material
+    assert check_material([], True, False)[0]
+    assert "No data or analysis code" in check_material(["README.md", "paper.pdf"], True, False)[0][0]
+    assert "no data files" in check_material(["main.do"], True, False)[0][0]
+    p, notes = check_material(["data/d.csv"], True, False)
+    assert not p and notes
+    assert not check_material(["d.dta", "main.R"], False, True)[0]
+    assert "nothing to compare" in check_material(["d.dta", "main.R"], False, False)[0][0]
+
+
+def test_authors_code_time_limit(tmp_path):
+    from replicaudit.runcode import run_package
+    pkg = tmp_path / "pkg"; pkg.mkdir()
+    (pkg / "a_slow.py").write_text("import time; time.sleep(30)")
+    (pkg / "b_next.py").write_text("print('hi')")
+    res = run_package(pkg, tmp_path / "out", timeout=12)
+    assert res.get("time_limit_reached")
+    assert any(r["exit"] in ("timeout", "skipped (time limit)") for r in res["ran"])

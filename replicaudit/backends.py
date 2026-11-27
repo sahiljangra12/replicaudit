@@ -52,6 +52,7 @@ class OpenAICompatBackend(Backend):
         self.client = OpenAI(
             base_url=base_url or os.environ.get("OPENAI_BASE_URL", "http://localhost:11434/v1"),
             api_key=api_key or os.environ.get("OPENAI_API_KEY", "ollama"),
+            timeout=float(os.environ.get("LLM_TIMEOUT", 600)), max_retries=0,
         )
         self.model = model
 
@@ -60,6 +61,7 @@ class OpenAICompatBackend(Backend):
             model=self.model,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
             temperature=0,
+            max_tokens=int(os.environ.get("LLM_MAX_TOKENS", 4000)),
         )
         return r.choices[0].message.content or ""
 

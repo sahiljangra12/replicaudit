@@ -49,13 +49,13 @@
       if (run && run.status === "completed") return [89, "Audit finished; saving the results…", false];
       if (run && run.status === "in_progress") {
         var t = mins(run.started_at);
-        return [50 + 38 * (1 - Math.exp(-t / 30)), "Running the authors' code and checking every number…",
-                false, Math.round(t) + " min so far in this step. Typical total: 20–90 minutes."];
+        return [50 + 38 * Math.min(1, t / 10), t < 5 ? "Running the authors' code and checking every number…" : "AI stage: rebuilding estimates and testing robustness…",
+                false, Math.round(t) + " of at most 10 minutes for this step."];
       }
       st.forEach(function (x) { if (run && x.number >= run.number) return; total++; if (x.status === "completed") before++; });
-      return [25 + 25 * (total ? before / total : 0), "Preparing the computer: installing R, Python and the free model…", false];
+      return [25 + 25 * (total ? before / total : 0), "Preparing the computer: installing R, Python and the free model (≤ 5 min)…", false];
     }
-    if (f && f.status !== "queued") return [10 + 15 * stepsDone(f), "Downloading the paper, data and code…", false];
+    if (f && f.status !== "queued") return [10 + 15 * stepsDone(f), "Downloading the paper, data and code, and checking there is enough to audit…", false];
     return [10, "Waiting in line. Audits run one at a time.", false];
   }
 
@@ -84,9 +84,9 @@
       $("t-meta").textContent = "Request #" + r + " · received " + new Date(iss.created_at).toLocaleString();
       step("s1", "done", "We have your request and materials.");
       var done = labels.indexOf("results-ready") >= 0, failed = labels.indexOf("audit-failed") >= 0;
-      if (failed) { setProgress(100, "The audit stopped before finishing.", "Details are below.", "bad"); step("s2", "done"); step("s3", "bad", "The audit couldn't be completed. The details are below."); return showResults(iss); }
+      if (failed) { setProgress(100, "Stopped: see the reason below.", "", "bad"); step("s2", "done"); step("s3", "bad", "The audit couldn't be completed. The details are below."); return showResults(iss); }
       if (done) { setProgress(100, "Done. Results are below.", "", "ok"); step("s2", "done", "Finished."); step("s3", "done", "Results are below."); return showResults(iss); }
-      step("s2", "now", "Running the authors' code and checking every number. This usually takes 20–90 minutes."); step("s3", "todo");
+      step("s2", "now", "Running the authors' code and checking every number. The whole audit takes about 10–15 minutes."); step("s3", "todo");
       moveTo(8, "Request received. Starting the audit…");
       track(r);
     }).catch(function (e) { busy(e, function () { load(r); }); });
@@ -130,10 +130,17 @@
 
   function render(sub, au, slug) {
     var h = [];
-    if (sub.status === "could not fetch" || !au) {
-      h.push('<div class="note amber"><b>The materials could not be downloaded.</b> ' + esc(sub.error || "") + "</div>");
+    if (sub.status === "not enough material" || sub.status === "could not fetch" || sub.status === "needs estimates" || !au) {
+      var head = { "not enough material": "Not enough material to run this audit.",
+                   "could not fetch": "The materials could not be downloaded.",
+                   "needs estimates": "No estimates to check." }[sub.status] || "The audit could not be completed.";
+      h.push('<div class="note red-note"><b>' + head + '</b> ' + esc(sub.error || "") +
+             '<div style="margin-top:12px"><a class="btn" href="submit.html">Send it again with the missing files</a></div></div>');
       $("results").innerHTML = h.join(""); return;
     }
+    if ((au.authors_code || {}).time_limit_reached) h.push('<div class="note amber" style="margin-bottom:12px">The authors\' code was stopped at the 5-minute limit, so some of its results may be missing. Estimates it didn\'t reach were rebuilt by the AI stage where possible.</div>');
+    if (au.time_limit_reached) h.push('<div class="note amber" style="margin-bottom:12px">The AI stage reached its 5-minute limit, so some estimates or robustness checks were not attempted.</div>');
+    (sub.notes_material || []).forEach(function (t) { h.push('<div class="note amber" style="margin-bottom:12px">' + esc(t) + "</div>"); });
     var cl = au.claims || [], n = cl.length, cnt = {};
     cl.forEach(function (c) { var v = (c.compare || {}).verdict || "not_found"; cnt[v] = (cnt[v] || 0) + 1; });
     var ac = au.authors_code || {};

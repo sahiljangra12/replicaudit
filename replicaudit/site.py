@@ -573,7 +573,7 @@ def submit_page():
 <div id="send-box" hidden style="margin-top:18px"><div style="height:6px;background:var(--gray-soft);border-radius:99px;overflow:hidden"><div id="send-bar" style="height:100%;width:0;background:var(--blue);transition:width .3s"></div></div>
 <div class="small" id="send-label" style="margin-top:8px"></div></div>
 <p class="small" id="send-error" style="color:var(--red)"></p>
-<p class="tiny" style="margin-top:14px">No account needed. Files are kept private and used only for this audit; results are shown publicly on this website. You'll get a page to follow the audit, which takes about 20 to 90 minutes.</p>
+<p class="tiny" style="margin-top:14px">No account needed. Files are kept private and used only for this audit; results are shown publicly on this website. You'll get a page to follow the audit, which takes about 10 to 15 minutes.</p>
 </div></div></section>
 
 <section class="sec"><div class="wrap wide">

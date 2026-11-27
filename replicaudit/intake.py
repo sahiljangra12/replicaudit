@@ -94,6 +94,44 @@ def claims_from_csv_text(text: str, dest: Path) -> Path | None:
     return dest
 
 
+DATA_EXT = (".csv", ".tsv", ".dta", ".rds", ".rdata", ".rda", ".xlsx", ".xls", ".sav", ".por", ".parquet",
+            ".feather", ".sas7bdat", ".xpt", ".json", ".dat", ".txt", ".shp", ".gpkg", ".nc", ".h5", ".hdf5",
+            ".mat", ".db", ".sqlite")
+CODE_EXT = (".r", ".rmd", ".qmd", ".py", ".ipynb", ".do", ".ado", ".jl", ".m", ".sas", ".sps")
+IGNORE = ("readme", "license", "licence", "citation", "requirements", "codebook")
+
+
+class NotEnoughMaterial(FetchError):
+    pass
+
+
+def check_material(files: list[str], has_paper: bool, has_claims: bool) -> tuple[list[str], list[str]]:
+    """Is there enough to run an audit? Returns (problems that stop it, notes)."""
+    names = [f for f in files if not any(Path(f).name.lower().startswith(w) for w in IGNORE)
+             and "__MACOSX" not in f and not Path(f).name.startswith(".")]
+    low = [f.lower() for f in names]
+    data = [f for f in low if f.endswith(DATA_EXT)]
+    code = [f for f in low if f.endswith(CODE_EXT)]
+    problems, notes = [], []
+    if not files:
+        problems.append("The replication package was empty: no files could be downloaded from the link or upload.")
+    elif not data and not code:
+        kinds = sorted({Path(f).suffix.lower() or "(no extension)" for f in files})[:8]
+        problems.append("No data or analysis code was found in the replication package (it contained only "
+                        + ", ".join(kinds) + " files). Please send the package with the data files "
+                        "(.csv, .dta, .rds, .xlsx, ...) and the scripts.")
+    elif not data:
+        problems.append("The replication package has code but no data files, so nothing can be recomputed. "
+                        "If the data are held elsewhere (for example a restricted archive), they cannot be audited here.")
+    elif not code:
+        notes.append("No analysis scripts were found, only data. The estimates are rebuilt from the data; "
+                     "the authors' own code could not be checked.")
+    if not has_paper and not has_claims:
+        problems.append("Neither the paper nor a list of estimates was provided, so there is nothing to compare "
+                        "against. Add the paper PDF or type the estimates to check.")
+    return problems, notes
+
+
 def fetch_materials(body: str, root: Path, materials: Path, issue: int | None = None,
                     issue_url: str | None = None) -> Path:
     """Step 1 (has access to the private uploads): parse the request, download everything into
@@ -160,9 +198,15 @@ def fetch_materials(body: str, root: Path, materials: Path, issue: int | None = 
             state["paper_txt"] = str(pt)
         claims = claims_from_csv_text(sub.get("claims_csv"), adir / "claims_submitted.csv")
         state["claims"] = str(claims) if claims else None
+        problems, notes = check_material([m["path"] for m in record["package"].get("manifest", [])],
+                                         bool(state["pdfs"]) or bool(texts), bool(claims))
+        if notes:
+            record["notes_material"] = notes
+        if problems:
+            raise NotEnoughMaterial(" ".join(problems))
         state["ok"] = True
     except FetchError as e:
-        record["status"] = "could not fetch"
+        record["status"] = "not enough material" if isinstance(e, NotEnoughMaterial) else "could not fetch"
         record["error"] = str(e)
         state["ok"] = False
     # Uploaded files are now on the runner: delete them from the intake store.

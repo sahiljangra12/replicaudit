@@ -80,6 +80,8 @@
   }
 
   // ------------------------------------------------------------ files: one drop zone
+  var DATA_EXT = /\.(csv|tsv|dta|rds|rdata|rda|xlsx?|sav|por|parquet|feather|sas7bdat|xpt|json|dat|txt|shp|gpkg|nc|h5|hdf5|mat|db|sqlite)$/i;
+  var CODE_EXT = /\.(r|rmd|qmd|py|ipynb|do|ado|jl|m|sas|sps)$/i;
   function role(f) { return /\.pdf$/i.test(f.name) ? "pdf" : "data"; }
   function addFiles(list) {
     list.forEach(function (f) {
@@ -88,6 +90,11 @@
       var item = { file: f, path: p, kind: role(f) };
       if (item.kind === "pdf") item.pdfRole = st.files.some(function (x) { return x.pdfRole === "paper"; }) || /supp|appendix|\bsm\b|_si\b|online/i.test(f.name) ? "supplement" : "paper";
       st.files.push(item);
+      if (/\.zip$/i.test(f.name) && window.JSZip) {   // look inside archives so we can say early if data or code is missing
+        item.inside = null;
+        window.JSZip.loadAsync(f).then(function (z) { item.inside = Object.keys(z.files).filter(function (k) { return !z.files[k].dir; }); render(); })
+          .catch(function () { item.inside = []; item.badZip = true; render(); });
+      }
     });
     st.files.filter(function (x) { return x.kind === "pdf" && !x.scanned; }).forEach(function (x) { x.scanned = true; scanPdf(x); });
     render(); save();
@@ -186,6 +193,7 @@
     var p = problems();
     $("go").disabled = st.busy;
     $("why").innerHTML = p.length && st.tried ? p.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") : "";
+    if (st.noCodeNote) $("why").innerHTML += '<li style="color:var(--amber,#b26a00)">No analysis scripts found, only data. That works: the estimates will be rebuilt from the data, but the authors\' own code can\'t be checked.</li>';
     show("found", !!st.doi || st.files.length > 0 || !!$("title").value);
   }
 
@@ -196,6 +204,23 @@
     if (!dataFiles().length && !st.pick && !st.link.trim()) p.push("Add the data and code: choose a found package, paste a link, or add the files");
     if (st.link.trim() && !/^(https?:\/\/|10\.\d{4,9}\/)/i.test(st.link.trim())) p.push("The data link should start with https://");
     st.files.forEach(function (x) { if (x.file.size > MAXFILE) p.push(x.file.name + " is over 100 MB. Upload it to Zenodo and paste the link instead"); });
+    // enough material? (only checkable for files added here; links are checked when the audit starts)
+    var usingFiles = dataFiles().length && !st.link.trim() && !st.pick;
+    if (usingFiles) {
+      var names = [], pending = false;
+      dataFiles().forEach(function (x) {
+        if (x.badZip) p.push(x.file.name + " could not be opened. Is it a complete .zip file?");
+        if (x.inside === null) pending = true;
+        names.push(x.path); (x.inside || []).forEach(function (n) { names.push(n); });
+      });
+      var hasData = names.some(function (n) { return DATA_EXT.test(n); }), hasCode = names.some(function (n) { return CODE_EXT.test(n); });
+      if (!pending && !hasData)
+        p.push("No data files found in what you added (we look for .csv, .dta, .rds, .xlsx, .sav, .parquet and similar). Add the data, or paste a link to the full replication package");
+      if (!pending && hasData && !hasCode) st.noCodeNote = true; else st.noCodeNote = false;
+    }
+    var hasPaper = st.files.some(function (x) { return x.kind === "pdf"; }) || !!st.oaPdf;
+    var hasClaims = st.suggestions.some(function (s) { return st.picked[s.key]; }) || ($("paste").value || "").trim();
+    if (!hasPaper && !hasClaims) p.push("Add the paper PDF (no free copy was found online) or type the estimates to check, so we know which numbers to reproduce");
     if (st.apiOk === false) p.push("Submissions are closed right now. Please try again later");
     return p;
   }

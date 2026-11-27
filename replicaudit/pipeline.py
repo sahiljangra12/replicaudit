@@ -77,10 +77,18 @@ class Audit:
                       "claims": [], "prep": None}
 
     # ---------------------------------------------------------------- helpers
+    deadline = None  # time.time() after which the AI stage starts nothing new (AI_STAGE_BUDGET seconds)
+
+    def out_of_time(self):
+        return self.deadline is not None and time.time() > self.deadline
+
     def _ask_and_run(self, key_prefix, build_prompt, target_b=None, check=None):
         """Ask for a script, run it, feed errors back; returns (RunResult|None, attempts list)."""
         attempts, feedback = [], ""
         for i in range(1, self.max_attempts + 1):
+            if self.out_of_time():
+                attempts.append({"attempt": i, "error": "stopped: the AI stage's time limit was reached"})
+                break
             key = f"{key_prefix}/attempt{i}"
             try:
                 answer = self.backend.complete(key, prompts.SYSTEM, build_prompt(feedback))
@@ -149,10 +157,17 @@ class Audit:
 
         # Stage B — AI rebuild (Stata translation, anything not found) and robustness, if a model is available
         if self.backend:
+            budget = int(os.environ.get("AI_STAGE_BUDGET", 0) or 0)
+            if budget:
+                self.deadline = time.time() + budget
+                self.state["ai_stage_budget_s"] = budget
             todo = [c for c in self.claims if not (c.get("authors_code") or {}).get("found")]
             todo += [c for c in self.claims if c.get("main") and c not in todo and self.robustness != "none"]
             if todo and self.prepare():
                 for c in todo:
+                    if self.out_of_time():
+                        self.state["time_limit_reached"] = True
+                        break
                     keep = c.get("compare") if (c.get("authors_code") or {}).get("found") else None
                     keep_rb = c.get("rebuilt") if keep else None
                     self.rebuild(c)
@@ -163,6 +178,9 @@ class Audit:
                             c["robust_base"] = c["ai_rebuilt"]
                     self.save()
                 for c in self.claims:
+                    if self.out_of_time():
+                        self.state["time_limit_reached"] = True
+                        break
                     if c.get("code") and (self.robustness == "all" or (self.robustness == "main" and c["main"])):
                         self.robust(c)
                         self.save()
@@ -323,6 +341,9 @@ class Audit:
             return
         out = []
         for j, v in enumerate(variants, 1):
+            if self.out_of_time():
+                self.state["time_limit_reached"] = True
+                break
             script = self.scripts / f"robust__{cid}__{j:02d}.py"
             script.write_text(v["code"], encoding="utf-8")
             r = run_script(script, self.work, self.env, self.timeout)

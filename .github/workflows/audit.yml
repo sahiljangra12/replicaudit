@@ -1,12 +1,14 @@
 name: Run audit
 run-name: "Audit request #${{ github.event.issue.number || inputs.issue }}"
 
-# Runs automatically when a request arrives from the website (or the GitHub form), free of charge:
-#   1. a 'fetch' job downloads the materials (the only job that can read uploaded files),
-#   2. run the authors' own R/Python code and look for every reported number,
-#   3. use a model for Stata translation, missing estimates and robustness checks:
-#      Claude if the ANTHROPIC_API_KEY secret exists, otherwise a free open-source model run on this machine,
-#   4. a separate job with write access publishes the results to the website.
+# Runs automatically when a request arrives from the website (or the GitHub form), free of charge.
+# Every step has a hard limit of 5 minutes, so a whole audit takes about 10-15 minutes at most.
+#   1. 'fetch' downloads the materials, checks there is enough to audit, and stops early with a clear
+#      message if not. It is the only job that can read uploaded files (via GitHub's OIDC identity).
+#   2. 'audit' runs the authors' own code (5 min limit), then the AI stage (5 min limit): Claude if the
+#      ANTHROPIC_API_KEY secret exists, otherwise a free open-source model on this machine. It has no
+#      credentials. The free model is installed in the background while the other tools install.
+#   3. 'publish' saves the results and rebuilds the website.
 on:
   issues:
     types: [opened, labeled]
@@ -27,13 +29,15 @@ jobs:
       (contains(github.event.issue.labels.*.name, 'audit-request') &&
        (github.event.action == 'opened' || github.event.label.name == 'run-audit'))
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 8
     permissions:
       contents: read
       issues: write
       id-token: write   # proves to the intake API that this is ReplicAudit; this job runs no submitted code
     outputs:
       slug: ${{ steps.fetch.outputs.slug }}
+      ok: ${{ steps.fetch.outputs.ok }}
+      lang: ${{ steps.fetch.outputs.lang }}
     env:
       ISSUE: ${{ github.event.issue.number || inputs.issue }}
     steps:
@@ -41,6 +45,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Mark the request as running
+        timeout-minutes: 2
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -51,9 +56,12 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt
-      - name: Step 1 — fetch the materials
+      - name: Install the download tools
+        timeout-minutes: 3
+        run: pip install -q pandas pypdf unrar-cffi py7zr
+      - name: Step 1 — fetch and check the materials
         id: fetch
+        timeout-minutes: 5
         run: |
           python -m replicaudit intake --step fetch --issue-body "$RUNNER_TEMP/issue.md" \
             --issue "$ISSUE" --issue-url "$(cat $RUNNER_TEMP/issue_url.txt)" \
@@ -61,42 +69,72 @@ jobs:
           dir=$(grep '^AUDIT_DIR=' "$RUNNER_TEMP/fetch.log" | tail -1 | cut -d= -f2-)
           slug=$(basename "$dir")
           echo "slug=$slug" >> "$GITHUB_OUTPUT"
-          tar -czf "$RUNNER_TEMP/bundle.tgz" -C "$RUNNER_TEMP" materials -C "$GITHUB_WORKSPACE" "audits/$slug"
+          ok=$(python3 -c "import json;print('true' if json.load(open('$RUNNER_TEMP/materials/state.json')).get('ok') else 'false')")
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+          lang=$(python3 -c "from pathlib import Path;from replicaudit.runcode import detect;print(detect(Path('$RUNNER_TEMP/materials/package')).get('language') or '')" 2>/dev/null || true)
+          echo "lang=$lang" >> "$GITHUB_OUTPUT"
+          echo "ok=$ok language=$lang"
+          if [ "$ok" = "true" ]; then
+            tar -czf "$RUNNER_TEMP/bundle.tgz" -C "$RUNNER_TEMP" materials -C "$GITHUB_WORKSPACE" "audits/$slug"
+          fi
       - uses: actions/upload-artifact@v4
-        if: steps.fetch.outputs.slug != ''
+        if: steps.fetch.outputs.ok == 'true'
         with:
           name: materials
           path: ${{ runner.temp }}/bundle.tgz
           retention-days: 1
+      # Not enough material (or the download failed): skip the audit and publish the reason at once.
+      - uses: actions/upload-artifact@v4
+        if: steps.fetch.outputs.slug != '' && steps.fetch.outputs.ok != 'true'
+        with:
+          name: audit-result
+          path: audits/${{ steps.fetch.outputs.slug }}
+          retention-days: 7
       - name: Report a failure before any results existed
         if: failure() && steps.fetch.outputs.slug == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label audit-failed --remove-label running || true
-          gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "ReplicAudit could not start this audit. The maintainer has been notified." || true
+          gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "ReplicAudit could not download the materials within 5 minutes. Please check the links, or upload the files directly." || true
 
   audit:
     needs: fetch
-    if: needs.fetch.outputs.slug != ''
+    if: needs.fetch.outputs.ok == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 340
+    timeout-minutes: 25
     permissions:
       contents: read
-    outputs:
-      slug: ${{ needs.fetch.outputs.slug }}
     env:
       SLUG: ${{ needs.fetch.outputs.slug }}
-      OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen2.5-coder:7b' }}
+      LANG_FOUND: ${{ needs.fetch.outputs.lang }}
+      OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen2.5-coder:3b' }}
+      HAS_CLAUDE: ${{ secrets.ANTHROPIC_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - uses: actions/cache@v4
+        if: env.HAS_CLAUDE != 'true'
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ env.OLLAMA_MODEL }}
+      - name: Start the free model in the background
+        if: env.HAS_CLAUDE != 'true'
+        run: |
+          nohup bash -c '
+            curl -fsSL https://ollama.com/install.sh | sh >/dev/null 2>&1
+            sudo systemctl stop ollama 2>/dev/null || true
+            (OLLAMA_MODELS=$HOME/.ollama/models OLLAMA_CONTEXT_LENGTH=16384 OLLAMA_NUM_PARALLEL=1 ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &)
+            for i in $(seq 1 30); do curl -s localhost:11434/api/tags >/dev/null && break; sleep 2; done
+            OLLAMA_MODELS=$HOME/.ollama/models ollama pull "$OLLAMA_MODEL" && touch "$RUNNER_TEMP/model-ready"
+          ' > "$RUNNER_TEMP/model-setup.log" 2>&1 &
       - uses: actions/download-artifact@v4
         with:
           name: materials
           path: ${{ runner.temp }}
       - name: Unpack the materials
+        timeout-minutes: 3
         run: |
           tar -xzf "$RUNNER_TEMP/bundle.tgz" -C "$RUNNER_TEMP" materials
           tar -xzf "$RUNNER_TEMP/bundle.tgz" -C "$GITHUB_WORKSPACE" "audits/$SLUG"
@@ -106,43 +144,44 @@ jobs:
           python-version: "3.12"
           cache: pip
       - uses: r-lib/actions/setup-r@v2
+        if: env.LANG_FOUND == 'R'
         with:
           use-public-rspm: true
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
       - name: Install tools
+        timeout-minutes: 5
         run: |
-          pip install -r requirements.txt jupyter nbconvert ipykernel
+          pip install -q -r requirements.txt
+          if find "$RUNNER_TEMP/materials/package" -name '*.ipynb' | grep -q .; then
+            pip install -q jupyter nbconvert ipykernel
+          fi
           npm install --prefix tools --ignore-scripts --no-optional --silent
-          Rscript -e 'install.packages(c("rmarkdown","knitr"), quiet=TRUE)' || true
-      - name: Free open-source model (used only when no Claude key is configured)
-        id: ollama
-        env:
-          HAS_CLAUDE: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+          if [ "$LANG_FOUND" = "R" ]; then Rscript -e 'install.packages(c("rmarkdown","knitr"), quiet=TRUE)' || true; fi
+      - name: Wait for the free model (at most 5 minutes)
+        if: env.HAS_CLAUDE != 'true'
+        timeout-minutes: 5
+        continue-on-error: true
         run: |
-          if [ "$HAS_CLAUDE" = "true" ]; then echo "Claude key present; skipping local model"; exit 0; fi
-          curl -fsSL https://ollama.com/install.sh | sh
-          echo "use=true" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v4
-        if: steps.ollama.outputs.use == 'true'
-        with:
-          path: ~/.ollama/models
-          key: ollama-${{ env.OLLAMA_MODEL }}
-      - name: Start the model
-        if: steps.ollama.outputs.use == 'true'
-        run: |
-          sudo systemctl stop ollama 2>/dev/null || true
-          (OLLAMA_MODELS=$HOME/.ollama/models OLLAMA_CONTEXT_LENGTH=16384 ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &)
-          for i in $(seq 1 30); do curl -s localhost:11434/api/tags >/dev/null && break; sleep 2; done
-          OLLAMA_MODELS=$HOME/.ollama/models ollama pull "$OLLAMA_MODEL"
+          for i in $(seq 1 280); do [ -f "$RUNNER_TEMP/model-ready" ] && echo "model ready" && exit 0; sleep 1; done
+          echo "The model did not get ready in time; continuing without the AI stage."; cat "$RUNNER_TEMP/model-setup.log" | tail -20
 
-      - name: Step 2 — run the audit
+      - name: Step 2 — run the audit (authors' code ≤ 5 min, then AI stage ≤ 5 min)
+        timeout-minutes: 12
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           REPLICAUDIT_MODEL: ${{ vars.REPLICAUDIT_MODEL }}
+          AUTHORS_CODE_TIMEOUT: "300"
+          INSTALL_TIMEOUT: "150"
+          AI_STAGE_BUDGET: "300"
+          LLM_TIMEOUT: "150"
+          LLM_MAX_TOKENS: "3000"
         run: |
-          python -m replicaudit intake --step audit --materials "$RUNNER_TEMP/materials" --backend auto
+          backend=auto
+          if [ "$HAS_CLAUDE" != "true" ] && [ ! -f "$RUNNER_TEMP/model-ready" ]; then backend=none; fi
+          python -m replicaudit intake --step audit --materials "$RUNNER_TEMP/materials" --backend "$backend" \
+            --timeout 120 --max-attempts 2 --n-robust 4
           rm -rf "$RUNNER_TEMP/materials"
 
       - uses: actions/upload-artifact@v4
@@ -152,11 +191,11 @@ jobs:
           path: audits/${{ env.SLUG }}
           retention-days: 7
 
-
   publish:
     needs: [fetch, audit]
     if: always() && needs.fetch.outputs.slug != ''
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
       issues: write
@@ -182,13 +221,16 @@ jobs:
         run: |
           gh workflow run pages.yml -R "$GITHUB_REPOSITORY" || true
           status=$(python3 -c "import json;print(json.load(open('audits/$SLUG/submission.json')).get('status',''))")
+          reason=$(python3 -c "import json;print(json.load(open('audits/$SLUG/submission.json')).get('error','')[:600])")
           url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/status.html?r=$ISSUE"
-          if [ "$status" = "could not fetch" ]; then
-            gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label audit-failed --remove-label running || true
-          else
-            gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label results-ready --remove-label running || true
-          fi
-          gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "ReplicAudit finished (status: $status). Results: $url  <!-- slug:$SLUG -->"
+          case "$status" in
+            "could not fetch"|"not enough material"|"needs estimates")
+              gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label audit-failed --remove-label running || true
+              gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "ReplicAudit stopped: $status. $reason Details: $url  <!-- slug:$SLUG -->" ;;
+            *)
+              gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label results-ready --remove-label running || true
+              gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "ReplicAudit finished (status: $status). Results: $url  <!-- slug:$SLUG -->" ;;
+          esac
       - name: Mark failure
         if: failure()
         run: gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label audit-failed --remove-label running || true

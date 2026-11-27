@@ -87,18 +87,32 @@ def install(lang: str, root: Path, scripts, log) -> None:
                 f"paste(getRversion(), R.version$platform, R.version$arch, R.version$os)));"
                 f"pk <- c({','.join(repr(p) for p in pk)}); need <- pk[!pk %in% rownames(installed.packages())];"
                 f"if (length(need)) install.packages(need, Ncpus=4, quiet=TRUE)")
-        r = subprocess.run(["Rscript", "-e", code], capture_output=True, text=True, timeout=1800)
-        log(f"R install exit {r.returncode}" + (": " + r.stderr[-600:] if r.returncode else ""))
+        try:
+            r = subprocess.run(["Rscript", "-e", code], capture_output=True, text=True, timeout=_install_limit())
+            log(f"R install exit {r.returncode}" + (": " + r.stderr[-600:] if r.returncode else ""))
+        except subprocess.TimeoutExpired:
+            log("R package installation stopped at the time limit")
     elif lang == "Python":
         pk = py_packages(root)
         req = next(iter(root.rglob("requirements*.txt")), None)
-        if req:
-            log(f"installing {req.relative_to(root)}")
-            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(req)], capture_output=True, timeout=1800)
-        for p in pk:
-            subprocess.run([sys.executable, "-m", "pip", "install", "-q", p], capture_output=True, timeout=600)
+        try:
+            if req:
+                log(f"installing {req.relative_to(root)}")
+                subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(req)], capture_output=True, timeout=_install_limit())
+            stop = time.time() + _install_limit()
+            for p in pk:  # one at a time, so one unknown name doesn't block the rest
+                left = int(stop - time.time())
+                if left < 5:
+                    break
+                subprocess.run([sys.executable, "-m", "pip", "install", "-q", p], capture_output=True, timeout=left)
+        except subprocess.TimeoutExpired:
+            log("Python package installation stopped at the time limit")
         if pk:
             log(f"installed Python packages: {', '.join(pk)}")
+
+
+def _install_limit() -> int:
+    return int(os.environ.get("INSTALL_TIMEOUT", 1800))
 
 
 # ------------------------------------------------------------------ path fixes
@@ -177,19 +191,26 @@ def run_package(root: Path, out_dir: Path, timeout: int = 3 * 3600) -> dict:
         return res
 
     res["changed_files"] = neutralise_paths(lang, root, log)
+    t_end = time.time() + timeout  # one budget for installing packages and running every script
     install(lang, root, info["scripts"], log)
     before = snapshot(root)
-    t_end = time.time() + timeout
     ok_all = True
     for s in info["scripts"]:
         cmd = _cmd(lang, s)
-        left = max(60, int(t_end - time.time()))
+        left = int(t_end - time.time())
+        if left < 10:
+            res["ran"].append({"script": str(s.relative_to(root)), "exit": "skipped (time limit)", "seconds": 0})
+            res["time_limit_reached"] = True
+            ok_all = False
+            log(f"{s.relative_to(root)}: skipped, the time limit was reached")
+            continue
         t0 = time.time()
         try:
             p = subprocess.run(cmd, cwd=s.parent, capture_output=True, text=True, timeout=left,
                                env={k: v for k, v in os.environ.items() if not k.upper().endswith(("_KEY", "_TOKEN", "_SECRET"))})
             code, so, se = p.returncode, p.stdout, p.stderr
         except subprocess.TimeoutExpired as e:
+            res["time_limit_reached"] = True
             code, so, se = "timeout", e.stdout or "", e.stderr or ""
             so = so.decode() if isinstance(so, bytes) else so
             se = se.decode() if isinstance(se, bytes) else se
