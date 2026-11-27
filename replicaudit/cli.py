@@ -12,7 +12,8 @@ from .report import build_report
 
 
 def _common(p):
-    p.add_argument("--backend", default="anthropic", choices=["anthropic", "openai", "replay"])
+    p.add_argument("--backend", default="auto", choices=["auto", "anthropic", "openai", "replay", "none"],
+                   help="auto: Claude if ANTHROPIC_API_KEY is set, else a local Ollama model if running, else no AI")
     p.add_argument("--model", help="model name (anthropic default: claude-sonnet-5-5)")
     p.add_argument("--base-url", help="for --backend openai, e.g. http://localhost:11434/v1 (Ollama)")
     p.add_argument("--fixtures", help="for --backend replay: folder of saved answers (a run's llm_log/)")
@@ -44,10 +45,13 @@ def main(argv=None):
     rp.add_argument("run_dir")
 
     it = sub.add_parser("intake", help="run an audit from a submission form (GitHub issue body)")
-    it.add_argument("--issue-body", required=True, help="file holding the issue body (markdown)")
+    it.add_argument("--issue-body", help="file holding the issue body (markdown)")
     it.add_argument("--issue", type=int)
     it.add_argument("--issue-url")
     it.add_argument("--audits", default="audits")
+    it.add_argument("--materials", help="two-step mode: folder for downloaded materials")
+    it.add_argument("--step", choices=["all", "fetch", "audit"], default="all",
+                    help="fetch: download only (may use private-upload credentials); audit: run on downloaded materials")
     _common(it)
 
     st = sub.add_parser("site", help="build the static website from audits/")
@@ -64,18 +68,31 @@ def main(argv=None):
         print(build_site(a.audits, a.out, a.include_drafts))
         return
 
-    backend = make_backend(a.backend, a.model, a.fixtures, a.base_url)
     opts = dict(max_attempts=a.max_attempts, robustness=a.robustness, n_robust=a.n_robust, timeout=a.timeout)
 
+    if a.cmd == "intake" and a.step == "fetch":
+        from .intake import fetch_materials
+        adir = fetch_materials(Path(a.issue_body).read_text(encoding="utf-8"), Path(a.audits), Path(a.materials),
+                               a.issue, a.issue_url)
+        print(f"AUDIT_DIR={adir}")
+        return
+
+    backend = make_backend(a.backend, a.model, a.fixtures, a.base_url)
+    print(f"model backend: {backend.name if backend else 'none (authors code and PDF tables only)'}")
+
     if a.cmd == "intake":
-        from .intake import run_intake
-        body = Path(a.issue_body).read_text(encoding="utf-8")
-        adir = run_intake(body, Path(a.audits), backend, a.issue, a.issue_url, **opts)
+        from .intake import audit_materials, run_intake
+        if a.step == "audit":
+            adir = audit_materials(Path(a.materials), backend, **opts)
+        else:
+            adir = run_intake(Path(a.issue_body).read_text(encoding="utf-8"), Path(a.audits), backend,
+                              a.issue, a.issue_url, **opts)
         print(f"AUDIT_DIR={adir}")
         return
 
     if a.cmd == "run":
-        audit = Audit(backend, a.package, a.out, paper=a.paper, claims=a.claims, **opts)
+        pdfs = [a.paper] if a.paper and a.paper.lower().endswith(".pdf") else []
+        audit = Audit(backend, a.package, a.out, paper=a.paper, claims=a.claims, pdfs=pdfs, **opts)
         audit.state["title"] = a.title
         audit.state["note"] = a.note
         audit.run()

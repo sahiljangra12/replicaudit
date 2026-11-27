@@ -106,7 +106,7 @@ a.row:hover{background:var(--bg-alt);text-decoration:none}
 .p-close{color:var(--green);background:var(--green-soft)}
 .p-same_sign{color:var(--amber);background:var(--amber-soft)}
 .p-different,.p-fragile{color:var(--red);background:var(--red-soft)}
-.p-failed,.p-pending,.p-draft{color:var(--ink-2);background:var(--gray-soft)}
+.p-failed,.p-not_found,.p-pending,.p-draft{color:var(--ink-2);background:var(--gray-soft)}
 .p-published{color:var(--blue);background:var(--blue-soft)}
 
 /* tables */
@@ -237,3 +237,15 @@ footer .links{display:flex;gap:20px;flex-wrap:wrap}
 .sg .tag{font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-soft);padding:2px 7px;border-radius:980px}
 @media (max-width:680px){.sg{grid-template-columns:22px 1fr auto}.sg .d{grid-column:2/-1}.sg .idc{display:none}}
 .item .x{appearance:none;border:0;background:var(--gray-soft);color:var(--ink-2);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:15px;line-height:1;flex:none}
+
+/* status steps */
+.st{position:relative;opacity:.55}
+.st.done,.st.now,.st.bad{opacity:1}
+.st h3{margin:12px 0 6px;font-size:20px}
+.st p{font-size:15px}
+.st-n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:600;background:var(--gray-soft);color:var(--ink-2)}
+.st.done .st-n{background:var(--green);color:#fff}
+.st.now .st-n{background:var(--blue);color:#fff;animation:pulse 1.6s ease-in-out infinite}
+.st.bad .st-n{background:var(--red);color:#fff}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,113,227,.45)}50%{box-shadow:0 0 0 9px rgba(0,113,227,0)}}
+@media (prefers-reduced-motion:reduce){.st.now .st-n{animation:none}}

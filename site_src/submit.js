@@ -1,7 +1,6 @@
-// Submission form. Checks entries, looks the paper up from its DOI, reads chosen PDFs in the
-// browser to suggest estimates, then hands everything to the repository's GitHub issue form via
-// URL prefill (field ids match .github/ISSUE_TEMPLATE/audit-request.yml). Files never leave the
-// browser here; the submitter attaches them on the GitHub page.
+// Submission form. Checks entries, looks the paper up from its DOI, reads chosen PDFs in the browser to
+// suggest estimates, then sends files (in parts) and the request to the ReplicAudit intake service.
+// The visitor never leaves the website; they land on status.html to follow the audit.
 (function () {
   var REPO = document.body.getAttribute("data-repo");
   var $ = function (id) { return document.getElementById(id); };
@@ -19,14 +18,14 @@
   function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
   function fileProblem(f) {
     if (!f) return "";
-    if (f.size > MAX) return f.name + " is larger than 25 MB, which GitHub won't accept. Upload it to Zenodo and paste the link instead.";
-    if (!GH_OK.test(f.name)) return f.name + ": GitHub accepts .zip, .pdf, .xlsx, .csv, .docx and .txt. Zip other formats first.";
+    if (f.size > MAX) return f.name + " is larger than 25 MB. Upload it to Zenodo and paste the link instead.";
+    if (!GH_OK.test(f.name)) return f.name + ": accepted formats are .zip, .pdf, .xlsx, .csv, .docx and .txt. Zip other formats first.";
     return "";
   }
   function detect(url) {
     var u = (url || "").trim();
     if (!u) return ["", ""];
-    if (/openicpsr|icpsr\.umich\.edu/i.test(u)) return ["bad", "openICPSR needs a login, so it can't be fetched automatically. Choose File and attach a zip, if the licence allows it."];
+    if (/openicpsr|icpsr\.umich\.edu/i.test(u)) return ["bad", "openICPSR needs a login, so it can't be fetched automatically. Choose File and send a zip, if the licence allows it."];
     if (/zenodo\.org|10\.5281\/zenodo/i.test(u)) return ["ok", "Zenodo record detected"];
     if (/dataverse|10\.7910\/DVN/i.test(u)) return ["ok", "Dataverse dataset detected"];
     if (/osf\.io|10\.17605\/OSF/i.test(u)) return ["ok", "OSF project detected"];
@@ -51,7 +50,7 @@
       var f = files[target];
       if (!f) return show(target + "-detect", "", "");
       var p = fileProblem(f);
-      return show(target + "-detect", p ? "bad" : "ok", p || (f.name + " · " + size(f.size) + " · attach it on the next page"));
+      return show(target + "-detect", p ? "bad" : "ok", p || (f.name + " · " + size(f.size) + " · sent when you press Send"));
     }
     if (target === "package") { var r = detect($("package").value); show("package-detect", r[0], r[1]); }
     if (target === "paper" && !$("paper").value) show("paper-detect", "", "");
@@ -291,14 +290,11 @@
   }
 
   // ---------------------------------------------------------------- values, checks, hand-off
-  function attachText(f, box) { return "📎 Attach " + f.name + " here: drag the file into this box."; }
   function values() {
     var v = {};
     FIELDS_ALL.forEach(function (k) { v[k] = $(k).value.trim(); });
     v.doi = cleanDoi(v.doi);
-    v.packageText = mode.package === "file" ? (files.package ? attachText(files.package) : "") : v.package;
-    v.paperText = mode.paper === "file" ? (files.paper ? attachText(files.paper) : "") : v.paper;
-    v.suppText = supp.map(function (s) { return s.kind === "file" ? attachText(s.file) : s.url; }).filter(Boolean).join("\n");
+    v.paperText = mode.paper === "file" ? (files.paper ? files.paper.name : "") : v.paper;
     v.claims = claimsCsv();
     return v;
   }
@@ -317,17 +313,6 @@
     if (!$("c1").checked || !$("c2").checked) p.push("Please confirm both statements");
     return p;
   }
-  function buildUrl(v) {
-    var q = new URLSearchParams();
-    q.set("template", "audit-request.yml");
-    q.set("title", "[Audit] " + v.title);
-    q.set("labels", "audit-request");
-    q.set("paper_title", v.title);
-    [["authors", v.authors], ["journal", v.journal], ["doi", v.doi], ["paper", v.paperText], ["package", v.packageText],
-     ["supplement", v.suppText], ["field", v.field], ["relationship", v.relationship], ["notes", v.notes], ["claims", v.claims]]
-      .forEach(function (kv) { if (kv[1]) q.set(kv[0], kv[1]); });
-    return REPO + "/issues/new?" + q.toString();
-  }
   function update() {
     var v = values(), p = problems(v), list = $("problems"), go = $("go");
     var nClaims = v.claims ? v.claims.split("\n").length - 1 : 0;
@@ -337,20 +322,67 @@
       ["Supplementary", supp.length ? supp.length + " item" + (supp.length > 1 ? "s" : "") : "none"],
       ["Estimates listed", nClaims ? nClaims + (v.claims.indexOf(",true") > 0 ? ", headline marked" : ", headline not marked") : "none: extracted during the audit"]];
     $("summary").innerHTML = rows.map(function (r) { return '<div class="summary-row"><span>' + r[0] + "</span><span>" + esc(r[1]) + "</span></div>"; }).join("");
-    var att = [];
-    if (mode.package === "file" && files.package) att.push([files.package.name, "Replication package"]);
-    if (mode.paper === "file" && files.paper) att.push([files.paper.name, "Paper PDF"]);
-    supp.forEach(function (s) { if (s.kind === "file") att.push([s.file.name, "Supplementary materials"]); });
-    $("attach").hidden = !att.length;
-    $("attach").innerHTML = att.length ? "<b>On the next page, drag these files into their boxes:</b><ul style=\"margin:8px 0 0;padding-left:20px\">" +
-      att.map(function (a) { return "<li>" + esc(a[0]) + " → <b>" + esc(a[1]) + "</b></li>"; }).join("") + "</ul>" : "";
     list.innerHTML = p.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("");
     list.style.display = p.length && tried ? "" : "none";
-    var url = buildUrl(v);
     go.setAttribute("data-ok", p.length ? "0" : "1");
-    go.setAttribute("data-url", url);
-    $("toolong").style.display = url.length > 7800 ? "" : "none";
     $("scan").disabled = !(pdfSources().length || (mode.paper === "link" && /^https?:\/\//.test($("paper").value)));
+  }
+
+  // ---------------------------------------------------------------- sending (no GitHub account needed)
+  var API = document.body.getAttribute("data-api"), PART = 3 * 1024 * 1024, sending = false;
+  function rid() {
+    var a = new Uint8Array(8); (window.crypto || window.msCrypto).getRandomValues(a);
+    return Array.prototype.map.call(a, function (x) { return ("0" + x.toString(16)).slice(-2); }).join("");
+  }
+  function progress(done, total, label) {
+    $("send-box").hidden = false;
+    $("send-bar").style.width = Math.round(100 * done / Math.max(total, 1)) + "%";
+    $("send-label").textContent = label;
+  }
+  function uploadFile(id, f, sent, total) {
+    var parts = Math.max(1, Math.ceil(f.size / PART)), i = 0;
+    function next() {
+      if (i >= parts) return Promise.resolve("upload://" + id + "/" + encodeURIComponent(f.name.replace(/[^\w.\- ]+/g, "_").replace(/\s+/g, "_")));
+      var blob = f.slice(i * PART, (i + 1) * PART);
+      var q = "?rid=" + id + "&name=" + encodeURIComponent(f.name) + "&part=" + (i + 1) + "&parts=" + parts;
+      return fetch(API + "/api/upload" + q, { method: "POST", body: blob, headers: { "content-type": "application/octet-stream" } })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "upload failed"); return j; }); })
+        .then(function () { sent.n += blob.size; i++; progress(sent.n, total, "Uploading " + f.name + "…"); return next(); });
+    }
+    return next();
+  }
+  function send() {
+    if (sending) return;
+    var v = values(), id = rid(), sent = { n: 0 };
+    var list = [];
+    if (mode.package === "file" && files.package) list.push(["package", files.package]);
+    if (mode.paper === "file" && files.paper) list.push(["paper", files.paper]);
+    supp.forEach(function (s, k) { if (s.kind === "file") list.push(["supp" + k, s.file]); });
+    var total = list.reduce(function (t, x) { return t + x[1].size; }, 0) + 1, refs = {};
+    sending = true; $("go").disabled = true; $("send-error").textContent = "";
+    progress(0, total, list.length ? "Uploading files…" : "Sending…");
+    var chain = Promise.resolve();
+    list.forEach(function (x) { chain = chain.then(function () { return uploadFile(id, x[1], sent, total).then(function (ref) { refs[x[0]] = ref; }); }); });
+    chain.then(function () {
+      progress(total - 1, total, "Sending the request…");
+      var suppLines = supp.map(function (s, k) { return s.kind === "file" ? refs["supp" + k] : s.url; }).filter(Boolean);
+      var body = {
+        title: v.title, authors: v.authors, journal: v.journal, doi: v.doi, field: v.field, relationship: v.relationship,
+        notes: v.notes, claims: v.claims, website: $("website").value,
+        package: mode.package === "file" ? refs.package : v.package,
+        paper: mode.paper === "file" ? (refs.paper || "") : v.paper,
+        supplement: suppLines.join("\n")
+      };
+      return fetch(API + "/api/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "could not send"); return j; }); });
+    }).then(function (j) {
+      progress(1, 1, "Sent. Opening your request's status page…");
+      try { localStorage.removeItem(KEY); localStorage.setItem("ra-last-request", String(j.number)); } catch (e) {}
+      window.location.href = "status.html?r=" + j.number;
+    }).catch(function (e) {
+      sending = false; $("go").disabled = false;
+      $("send-error").textContent = "Couldn't send: " + e.message + ". Nothing was lost; please try again.";
+    });
   }
 
   // ---------------------------------------------------------------- autosave (this browser only)
@@ -422,7 +454,7 @@
     });
     $("go").addEventListener("click", function () {
       tried = true; update();
-      if ($("go").getAttribute("data-ok") === "1") window.open($("go").getAttribute("data-url"), "_blank", "noopener");
+      if ($("go").getAttribute("data-ok") === "1") send();
       else $("problems").scrollIntoView({ behavior: "smooth", block: "center" });
     });
     if ($("doi").value) lookup();

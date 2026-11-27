@@ -16,11 +16,13 @@ from . import __version__
 from .compare import VERDICTS, stars
 
 REPO = "https://github.com/sahiljangra12/replicaudit"
+API = "https://replicaudit-intake.netlify.app"
 SITE_URL = "https://sahiljangra12.github.io/replicaudit"
 E = html.escape
 
 SHORT = {"exact": "Reproduced", "close": "Close", "same_sign": "Size differs", "different": "Sign differs",
-         "failed": "Not rebuilt", "pending": "Pending"}
+         "failed": "Not rebuilt", "not_found": "Not found", "pending": "Pending"}
+METHOD = {"authors_code": "Authors' own code", "ai_rebuild": "AI rebuild"}
 
 LOGO = ('<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10.5" stroke="currentColor" '
         'stroke-width="1.6"/><path d="M7.2 12.4l3.1 3.1 6.5-7" stroke="var(--blue)" stroke-width="2.1" '
@@ -52,8 +54,8 @@ def pill(kind, text=None):
 
 def page(title, body, depth=0, active="", desc="", extra_js="", body_attrs=""):
     up = "../" * depth
-    nav = [("index.html", "Registry"), ("submit.html", "Submit"), ("methods.html", "Methods"),
-           ("policy.html", "Policy"), (REPO, "GitHub")]
+    nav = [("index.html", "Registry"), ("submit.html", "Submit"), ("status.html", "Track a request"),
+           ("methods.html", "Methods"), ("policy.html", "Policy")]
     links = "".join(
         f'<a href="{h if h.startswith("http") else up + h}"{" aria-current=page" if h == active else ""}>{E(t)}</a>'
         for h, t in nav)
@@ -137,7 +139,7 @@ def load_audits(root: Path, include_drafts=False):
         if not sj.exists():
             continue
         sub = json.loads(sj.read_text())
-        if sub.get("status") != "published" and not include_drafts:
+        if sub.get("status") in ("draft",) and not include_drafts:
             continue
         aj = d / "audit.json"
         audit = json.loads(aj.read_text()) if aj.exists() else {"claims": []}
@@ -174,6 +176,7 @@ FIELDS = ["Ecology & biodiversity", "Climate & energy", "Environmental economics
 
 
 def index_page(audits):
+    audits = [a for a in audits if a["sub"].get("status") == "published" or a.get("show_in_registry")]
     sums = [summarize(a) for a in audits]
     n_claims = sum(s["n"] for s in sums)
     n_exact = sum(s["exact"] for s in sums)
@@ -287,11 +290,11 @@ def audit_page(a):
     out = []
 
     out.append(f"""<section class="sec center" style="padding-bottom:64px"><div class="wrap">
-<p class="eyebrow">{"Replication audit" if st == "published" else "Replication audit · Draft"}</p>
+<p class="eyebrow">{"Replication audit" if st == "published" else "Replication audit · Unreviewed"}</p>
 <h1 class="h1">{E(sub.get("title") or a["slug"])}</h1>
 <p class="lead" style="font-size:19px">{E(sub.get("authors") or "")} · <i>{E(sub.get("journal_year") or "")}</i><br>
 <a href="https://doi.org/{E(doi)}">doi:{E(doi)}</a></p>
-{'' if st == "published" else '<div class="note amber" style="max-width:640px;margin:26px auto 0"><b>Draft.</b> Not yet reviewed or published. Please do not cite it.</div>'}
+{'' if st == "published" else '<div class="note amber" style="max-width:680px;margin:26px auto 0"><b>Automated result, not yet reviewed.</b> A person checks every audit before it joins the registry, and the authors are invited to respond. Please do not cite it yet.</div>'}
 </div></section>""")
 
     head = s["head"]
@@ -324,15 +327,35 @@ def audit_page(a):
         nn = f"{E(str(cl.get('n') or '—'))}<div class='sub'>{E(str(rb.get('n') or '—'))}</div>"
         script = (f'<a href="{REPO}/blob/main/audits/{a["slug"]}/scripts/{E(cl["script"])}">Code</a>' if cl.get("script") else "")
         main = ' <span class="pill p-published" style="padding:2px 8px;font-size:11px">Headline</span>' if cl.get("main") else ""
+        hits = (cl.get("authors_code") or {}).get("hits") or []
+        if hits:
+            script = (f'<details><summary class="small">Where</summary><div class="tiny mono" style="white-space:pre-wrap;max-width:420px">'
+                      f'{E(hits[0]["file"])}, line {hits[0]["line"]}\n{E(hits[0]["snippet"][:400])}</div></details>')
+        how = E(METHOD.get(cm.get("method"), "—"))
         rows.append(f"<tr><td class='mono'>{E(cl['id'])}</td><td class='desc'>{E(cl['description'])}{main}</td>"
                     f"<td class='n'>{pb}</td><td class='n'>{mine}</td><td class='n'>{nn}</td>"
-                    f"<td>{pill(cm.get('verdict', 'pending'))}</td><td class='n'>{len(cl.get('attempts', []))}</td><td>{script}</td></tr>")
+                    f"<td>{pill(cm.get('verdict', 'pending'))}</td><td class='small'>{how}</td><td>{script}</td></tr>")
     out.append(f"""<section class="sec"><div class="wrap wide">
 <div class="head-row"><div><p class="eyebrow">Reproduction</p><h2 class="h2">Every reported estimate, rebuilt.</h2></div>
 <a class="link-arrow" href="../../methods.html#verdicts">Verdict definitions</a></div>
 <div class="table"><table><thead><tr><th>ID</th><th>Estimate</th><th class="n">Paper</th><th class="n">Rebuilt</th>
-<th class="n">N paper / rebuilt</th><th>Verdict</th><th class="n">Tries</th><th></th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
-<p class="small" style="margin-top:12px">Coefficient with standard error below. Stars: *** p&lt;0.01, ** p&lt;0.05, * p&lt;0.10. “Tries” counts attempts by the pipeline, including corrections after a mismatch.</p>
+<th class="n">N paper / rebuilt</th><th>Verdict</th><th>How</th><th></th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
+<p class="small" style="margin-top:12px">Coefficient with standard error below. Stars: *** p&lt;0.01, ** p&lt;0.05, * p&lt;0.10. “Authors' own code” means the number appeared in the output of the authors' code run unchanged; “AI rebuild” means a model rewrote the analysis in Python.</p>
+</div></section>""")
+
+    ac = au.get("authors_code") or {}
+    if ac:
+        ran = "".join(f"<tr><td class='mono'>{E(r['script'])}</td><td class='n'>{E(str(r['exit']))}</td><td class='n'>{E(str(r['seconds']))} s</td>"
+                      f"<td><a href=\"{REPO}/blob/main/audits/{a['slug']}/authors_run/{E(r['stdout'])}\">output</a> · "
+                      f"<a href=\"{REPO}/blob/main/audits/{a['slug']}/authors_run/{E(r['stderr'])}\">messages</a></td></tr>" for r in ac.get("ran", []))
+        status_txt = {"ran": "ran without errors", "ran with errors": "ran, with errors in some scripts",
+                      "needs translation": "is Stata, which this server cannot run; the analysis was translated to Python by the AI stage",
+                      "no code": "was not found in the package", "unsupported language": "is in a language not supported yet"}.get(ac.get("status"), ac.get("status", ""))
+        out.append(f"""<section class="sec"><div class="wrap wide">
+<p class="eyebrow">Step 1 · Authors' own code</p><h2 class="h2" style="margin-bottom:12px">Run exactly as published.</h2>
+<p class="sub" style="max-width:760px;margin:0 0 22px">The authors' {E(ac.get("language") or "")} code {E(status_txt)}. {ac.get("found", 0)} of {len(claims)} reported estimates appeared in its output.
+{("Hard-coded working-directory lines were disabled in: " + E(", ".join(ac["changed_files"])) + ".") if ac.get("changed_files") else ""}</p>
+{('<div class="table"><table><thead><tr><th>Script</th><th class="n">Exit code</th><th class="n">Time</th><th></th></tr></thead><tbody>' + ran + "</tbody></table></div>") if ran else ""}
 </div></section>""")
 
     # robustness
@@ -349,20 +372,22 @@ def audit_page(a):
         out.append(f"""<section class="sec alt"><div class="wrap wide">
 <p class="eyebrow">Robustness</p><h2 class="h2" style="margin-bottom:10px">Does the headline survive?</h2>
 <p class="sub" style="margin:0 0 28px;max-width:760px">{E(cl['id'])}: {E(cl['description'])}</p>
-{spec_chart(cl.get("rebuilt"), R["variants"])}
+{spec_chart(cl.get("robust_base") or cl.get("rebuilt"), R["variants"])}
 <div class="table"><table><thead><tr><th>Alternative specification</th><th class="n">b</th><th class="n">se</th><th class="n">N</th></tr></thead><tbody>{vr}</tbody></table></div>
 </div></section>""")
 
     # provenance
     prov = [("Paper", f'<a href="https://doi.org/{E(doi)}">doi:{E(doi)}</a>'),
-            ("Replication package", f'<a href="{E(pkg.get("resolved_url") or pkg.get("source") or "")}">{E(pkg.get("source") or "—")}</a>'),
+            ("Replication package", ("Uploaded file, kept private: " + E(pkg.get("file") or "")) if str(pkg.get("source", "")).startswith("upload://")
+             else f'<a href="{E(pkg.get("resolved_url") or pkg.get("source") or "")}">{E(pkg.get("source") or "—")}</a>'),
             ("Version", f'<span class="mono">{E(str(pkg.get("version") or pkg.get("commit") or "—"))}</span>'),
             ("Files fingerprinted", f'{len(pkg.get("manifest", []))} files · SHA-256 of manifest <span class="mono">{E(pkg.get("package_sha256", "")[:20])}…</span>'),
             ("Supplementary files", E(", ".join((x.get("file") or x.get("source", "")) for x in sub.get("supplement") or [] if isinstance(x, dict)) or "—")
              if isinstance(sub.get("supplement"), list) else "—"),
             ("Archives unpacked", E(", ".join(pkg.get("unpacked") or []) or "—")),
-            ("Estimates listed by", "the submitter" if any((a["dir"] / f).exists() for f in ("claims_submitted.csv", "claims.csv")) else "the model, from the paper"),
-            ("Model", E(f"{au.get('model') or au.get('backend', '')}")),
+            ("Estimates listed by", {"pdf_tables": "the PDF table reader (no AI)", "model": "the model, from the paper"}.get(
+                (claims[0].get("source") if claims else None), "the submitter")),
+            ("AI model", E(au.get("model") or ("none: authors' code and PDF tables only" if au.get("backend") in (None, "none") else au.get("backend")))),
             ("Software", E(f"ReplicAudit {env.get('replicaudit', '')} · Python {env.get('python', '')} · pandas {env.get('pandas', '')} · pyfixest {env.get('pyfixest', '')}")),
             ("Run", E(f"{au.get('started', '')} · {au.get('llm_calls', '—')} model calls")),
             ("Request", (f'<a href="{E(sub.get("issue_url") or "")}">#{sub["issue"]}</a> · ' if sub.get("issue") else "") + E(sub.get("relationship") or "")),
@@ -403,8 +428,9 @@ METHODS = """
 <h2 id="claims"><span class="num-h">3</span>Claims</h2>
 <p>A <i>claim</i> is one reported estimate: a coefficient with its standard error and sample size, in a named table and column. Claims are listed by the submitter or extracted from the paper and supplementary materials by the model. The reviewer checks the list against the paper before publication. The paper's headline result is marked as the main claim.</p>
 <h2 id="rebuild"><span class="num-h">4</span>Rebuilding the analysis</h2>
-<p>A language model, named on each audit page, writes Python code in two stages. First comes one script that builds the analysis dataset by following the authors' own data-preparation code. Then comes one script per claim that re-estimates it. Each script runs in its own process, without credentials and with a time limit. When a script fails or its result doesn't match, the error or mismatch is returned to the model, up to four attempts per claim, and the number of attempts is reported.</p>
-<p>Scripts that contain the paper's reported value as a literal are rejected automatically, so every number must be computed from the data.</p>
+<p><b>Step 1: the authors' own code.</b> R and Python packages are run exactly as published, on a fresh server. The only change made is to disable hard-coded working-directory lines such as <code>setwd("C:/Users/…")</code>, and every such change is listed on the audit page. The packages the scripts load are installed automatically. Each reported estimate is then searched for in everything the code printed or wrote: the coefficient, followed closely by its standard error, both rounded to the decimals the paper prints. Matches are shown with the file and line they came from. This step uses no AI.</p>
+<p><b>Step 2: the AI stage.</b> This server has no Stata licence, so Stata packages are translated: a language model writes Python that follows the authors' code, first to build the analysis dataset and then to re-estimate each claim. Errors and mismatches are returned to the model, up to four attempts per claim. The same stage re-estimates anything step 1 did not find, and writes the robustness variants. By default the model is a free open-source model running on the audit server itself. If the maintainer adds a Claude key, Claude is used instead. The model is named on every audit page.</p>
+<p>Scripts are run without credentials and with time limits. Scripts that contain the paper's reported value as a literal are rejected automatically, so every number must be computed from the data.</p>
 <h2 id="verdicts"><span class="num-h">5</span>Verdicts</h2>
 <ul>
 <li><b>Reproduced.</b> The coefficient and standard error equal the paper's after rounding to the decimals the paper prints, and the sample size matches where it is reported.</li>
@@ -412,6 +438,7 @@ METHODS = """
 <li><b>Size differs.</b> The direction holds but the magnitude does not.</li>
 <li><b>Sign differs.</b> The sign is reversed.</li>
 <li><b>Not rebuilt.</b> No working script within the attempt limit. This describes our pipeline, not the paper.</li>
+<li><b>Not found.</b> The number did not appear in the output of the authors' code, and no AI rebuild was attempted or succeeded. It may be printed in a format we did not recognise, so this is not evidence of an error.</li>
 </ul>
 <h2 id="robustness"><span class="num-h">6</span>Robustness</h2>
 <p>For the main claim, the model proposes up to eight alternative specifications a careful referee could reasonably ask for. These cover alternative controls, samples, fixed effects, clustering, outcome measures and outlier treatment, and checks of the measurement or observation process. Each variant is estimated and shown with its 95% interval.</p>
@@ -441,9 +468,9 @@ POLICY = """
 <h2 id="corrections">Corrections</h2>
 <p>To report a mistake in an audit, open an issue on GitHub or email the maintainer. Corrections are made in a new commit, the audit page says what changed, and earlier versions stay in the public history.</p>
 <h2 id="ai">Use of AI</h2>
-<p>The analysis code in each audit is written by a large language model, named on its page. All prompts and answers are published. A person reviews every audit before publication and is accountable for it.</p>
+<p>Where the authors' own code can be run, no AI is involved in reproducing their numbers. Where it cannot (for example Stata), or for robustness checks, the analysis code is written by a language model named on the audit page, and all its prompts and answers are published. Results are shown to the requester straight away, marked as unreviewed. A person reviews every audit before it joins the registry and is accountable for it.</p>
 <h2 id="data">Data, licences and conflicts of interest</h2>
-<p>We never redistribute authors' data or papers. We publish checksums, our own code and our results. Code is released under the MIT licence and audit reports under CC BY 4.0. Reviewers declare any relationship with the authors, and requests from authors of competing work are labelled as such.</p>
+<p>We never redistribute authors' data or papers. Files sent through the website are kept in a private store and used only for the audit. We publish checksums, our own code and our results. Code is released under the MIT licence and audit reports under CC BY 4.0. Reviewers declare any relationship with the authors, and requests from authors of competing work are labelled as such.</p>
 <h2 id="contact">Contact</h2>
 <p>Maintainer: Sahil, Johns Hopkins University · <a href="mailto:sfnu1@jh.edu">sfnu1@jh.edu</a> · <a href="{repo}/issues">GitHub issues</a></p>"""
 
@@ -454,7 +481,7 @@ def submit_page():
 <section class="sec center" style="padding-bottom:56px"><div class="wrap">
 <p class="eyebrow">Submit a paper</p>
 <h1 class="h1">Request an audit.</h1>
-<p class="lead">Paste a DOI and a link to the data and code. Most of the rest fills itself in. You’ll send the request from your GitHub account, so it stays on the public record.</p>
+<p class="lead">Paste a DOI and add the data and code. Most of the rest fills itself in. The audit runs automatically and its results appear here on the website.</p>
 </div></section>
 <section class="sec alt" style="padding-top:56px"><div class="wrap">
 <div class="note" id="restored" style="display:none;margin-top:0;display:none">Your unsent request was restored from this browser. <a href="#" id="clear" onclick="return false">Clear form</a></div>
@@ -493,7 +520,7 @@ def submit_page():
 <button class="btn small secondary" type="button" id="supp-addlink">Add a link</button></div>
 <div class="detect" id="supp-detect"></div></div>
 </div>
-<div class="note blue" style="margin-bottom:0"><b>How files travel.</b> Files you choose here are checked and read in your browser, and are not uploaded anywhere yet. On the next page you drag each one into its labelled box on GitHub, and the list below tells you which goes where. Other formats (.dta, .rar, .do, .R) need zipping first.</div>
+<div class="note blue" style="margin-bottom:0"><b>About files.</b> Files are sent to a private store, used only for this audit and never published. Up to about 25 MB each. Zip other formats (.dta, .rar, .do, .R) first.</div>
 </div>
 
 <div class="fset"><h3><span class="badge">3</span>Estimates to check <span class="small" style="font-weight:400">— optional</span></h3>
@@ -513,16 +540,18 @@ def submit_page():
 <button class="btn small secondary" type="button" id="addrow" style="margin-top:8px">Add an estimate</button>
 </div>
 
-<div class="fset"><h3><span class="badge">4</span>Review and send</h3><p>Check the summary, then continue to GitHub to send it.</p>
+<div class="fset"><h3><span class="badge">4</span>Review and send</h3><p>Check the summary, then send.</p>
 <div class="f full" style="margin-bottom:18px"><label for="notes">Notes for the auditors <span class="opt">— optional</span></label><textarea class="field-in" id="notes" placeholder="For example: which script produces which table, or data that are restricted."></textarea></div>
 <div id="summary" style="margin-bottom:18px"></div>
-<div class="note amber" id="attach" hidden style="margin-top:0"></div>
+<input type="text" id="website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
 <label class="check"><input type="checkbox" id="c1"><span>The replication materials are publicly available and I may point to them.</span></label>
 <label class="check"><input type="checkbox" id="c2"><span>I understand the audit is published openly after review, and the authors are invited to respond first.</span></label>
 <ul id="problems" class="small" style="color:var(--red);margin:14px 0 0;padding-left:20px"></ul>
-<p id="toolong" class="small" style="display:none;color:var(--amber)">This request is very long. If GitHub cuts it off, paste your estimates on the next page.</p>
-<div class="btns" style="margin-top:22px"><button class="btn" type="button" id="go">Continue on GitHub</button><button class="btn secondary" type="button" onclick="document.getElementById('clear').click()">Start over</button></div>
-<p class="tiny" style="margin-top:12px">Opens a pre-filled request in a new tab. You'll need a free GitHub account. Nothing is sent until you press “Create” there. Your entries are saved in this browser until then.</p>
+<div class="btns" style="margin-top:22px"><button class="btn" type="button" id="go">Send request</button><button class="btn secondary" type="button" onclick="document.getElementById('clear').click()">Start over</button></div>
+<div id="send-box" hidden style="margin-top:18px"><div style="height:6px;background:var(--gray-soft);border-radius:99px;overflow:hidden"><div id="send-bar" style="height:100%;width:0;background:var(--blue);transition:width .3s"></div></div>
+<div class="small" id="send-label" style="margin-top:8px"></div></div>
+<p class="small" id="send-error" style="color:var(--red)"></p>
+<p class="tiny" style="margin-top:12px">No account needed. The audit starts automatically and you'll get a page to follow it. Your entries are saved in this browser until you send.</p>
 </div>
 </form></div></section>
 
@@ -536,7 +565,27 @@ def submit_page():
 </div></div></section>"""
     return page("Submit a paper", body, 0, "submit.html", extra_js=('<script src="vendor/pdfjs/pdf.min.js" defer></script><script src="estimates.js" defer></script>'
                       '<script src="submit.js" defer></script>'),
-                body_attrs=f' data-repo="{REPO}"')
+                body_attrs=f' data-repo="{REPO}" data-api="{API}"')
+
+
+def status_page():
+    body = """
+<section class="sec center" style="padding-bottom:40px"><div class="wrap">
+<p class="eyebrow">Track a request</p><h1 class="h1" id="t-title">Your audit</h1><p class="lead" id="t-meta" style="font-size:17px"></p>
+<p class="small" id="t-err" style="color:var(--red)"></p></div></section>
+<section class="sec alt" style="padding-top:48px"><div class="wrap">
+<div id="ask" hidden class="card" style="max-width:520px;margin:0 auto"><h3 class="h3" style="margin-bottom:12px">Enter your request number</h3>
+<div style="display:flex;gap:10px"><input class="field-in" id="rnum" inputmode="numeric" placeholder="e.g. 12"><button class="btn" id="go-track" type="button">Track</button></div></div>
+<div id="track" hidden>
+<div class="grid g3 steps3">
+<div class="card st" id="s1"><div class="st-n">1</div><h3>Received</h3><p class="st-s"></p></div>
+<div class="card st" id="s2"><div class="st-n">2</div><h3>Running</h3><p class="st-s"></p></div>
+<div class="card st" id="s3"><div class="st-n">3</div><h3>Results</h3><p class="st-s">Will appear here when the audit finishes. You can close this page and come back later.</p></div>
+</div>
+<div id="results" style="margin-top:28px"></div>
+<p class="tiny" style="margin-top:20px">Bookmark this page to come back. It refreshes itself while the audit runs.</p>
+</div></div></section>"""
+    return page("Track a request", body, 0, "status.html", extra_js='<script src="status.js" defer></script>')
 
 
 def build_site(audits_dir="audits", out="_site", include_drafts=False, static_dir=None):
@@ -545,12 +594,13 @@ def build_site(audits_dir="audits", out="_site", include_drafts=False, static_di
         shutil.rmtree(out)
     out.mkdir(parents=True)
     static = Path(static_dir) if static_dir else Path(__file__).resolve().parent.parent / "site_src"
-    for f in ("style.css", "site.js", "submit.js", "estimates.js"):
+    for f in ("style.css", "site.js", "submit.js", "estimates.js", "status.js"):
         shutil.copy(static / f, out / f)
     shutil.copytree(static / "vendor", out / "vendor")
     audits = load_audits(audits_dir, include_drafts)
     (out / "index.html").write_text(index_page(audits), encoding="utf-8")
     (out / "submit.html").write_text(submit_page(), encoding="utf-8")
+    (out / "status.html").write_text(status_page(), encoding="utf-8")
     (out / "methods.html").write_text(article_page(
         f"Protocol v1 · ReplicAudit {__version__}", "Methods",
         "One fixed, published procedure, applied the same way to every paper. Any change to it gets a new version number, and every audit records the version it used.",

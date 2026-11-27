@@ -1,0 +1,8 @@
+# Netlify hosts only the small intake API for the website; the website itself is on GitHub Pages.
+[build]
+  publish = "netlify/public"
+  command = ""
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

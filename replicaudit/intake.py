@@ -28,7 +28,7 @@ FIELDS = {
     "Your relationship to the paper": "relationship",
     "Notes for the auditors": "notes",
 }
-URL_RE = re.compile(r"https?://[^\s)<>\]]+")
+URL_RE = re.compile(r"(?:https?|upload)://[^\s)<>\]]+")
 
 
 def parse_issue_form(body: str) -> dict:
@@ -94,10 +94,11 @@ def claims_from_csv_text(text: str, dest: Path) -> Path | None:
     return dest
 
 
-def run_intake(body: str, root: Path, backend, issue: int | None = None, issue_url: str | None = None,
-               **audit_opts) -> Path:
-    from .pipeline import Audit, read_paper
-    from .report import build_report
+def fetch_materials(body: str, root: Path, materials: Path, issue: int | None = None,
+                    issue_url: str | None = None) -> Path:
+    """Step 1 (has access to the private uploads): parse the request, download everything into
+    `materials`, and write audits/<slug>/submission.json. Runs no untrusted code."""
+    from .pipeline import read_paper
 
     sub = parse_issue_form(body)
     for need in ("title", "doi", "package"):
@@ -106,19 +107,20 @@ def run_intake(body: str, root: Path, backend, issue: int | None = None, issue_u
     slug = slugify(sub)
     adir = Path(root) / slug
     if adir.exists():
-        slug = f"{slug}-{time.strftime('%Y%m%d')}"
+        slug = f"{slug}-{time.strftime('%Y%m%d%H%M')}"
         adir = Path(root) / slug
     adir.mkdir(parents=True)
-
-    tmp = Path(tempfile.mkdtemp(prefix="replicaudit_"))
+    tmp = Path(materials)
+    tmp.mkdir(parents=True, exist_ok=True)
     record = {"slug": slug, "issue": issue, "issue_url": issue_url,
-              "submitted": time.strftime("%Y-%m-%d"), "status": "under review",
+              "submitted": time.strftime("%Y-%m-%d"), "status": "unreviewed",
               **{k: sub.get(k) for k in ("title", "authors", "journal_year", "doi", "field",
                                          "relationship", "notes")}}
+    state = {"slug": slug, "adir": str(adir), "title": sub["title"], "pdfs": [], "paper_txt": None, "claims": None}
     try:
         pkg_src = first_link(sub["package"])
         if not pkg_src:
-            raise FetchError("No link or attachment found for the replication package.")
+            raise FetchError("No link or uploaded file was found for the replication package.")
         record["package"] = fetch_package(pkg_src, tmp / "package")
 
         texts = []
@@ -128,9 +130,10 @@ def run_intake(body: str, root: Path, backend, issue: int | None = None, issue_u
                 f = fetch_file(link, tmp / "paper")
                 record["paper"] = {"source": link, "sha256": sha256_file(f), "bytes": f.stat().st_size}
                 texts.append("===== PAPER =====\n" + read_paper(f))
+                state["pdfs"].append(str(f))
             except Exception as e:
                 record["paper"] = {"source": link, "error": str(e)[:300]}
-        # every supplementary file: PDFs are read for claims, anything else joins the package
+        # every supplementary file: PDFs are read for estimates, anything else joins the package
         record["supplement"] = []
         for i, link in enumerate(all_links(sub.get("supplement")), 1):
             try:
@@ -138,6 +141,7 @@ def run_intake(body: str, root: Path, backend, issue: int | None = None, issue_u
                 entry = {"source": link, "file": f.name, "sha256": sha256_file(f), "bytes": f.stat().st_size}
                 if f.suffix.lower() == ".pdf":
                     texts.append(f"===== SUPPLEMENT {i}: {f.name} =====\n" + read_paper(f))
+                    state["pdfs"].append(str(f))
                 else:
                     dest = tmp / "package" / "_supplementary"
                     dest.mkdir(parents=True, exist_ok=True)
@@ -150,24 +154,53 @@ def run_intake(body: str, root: Path, backend, issue: int | None = None, issue_u
             from .fetch import manifest, unpack_archives
             record["package"]["unpacked"] += unpack_archives(tmp / "package" / "_supplementary")
             record["package"]["manifest"] = manifest(tmp / "package")
-        paper_txt = None
         if texts:
-            paper_txt = tmp / "paper_and_supplement.txt"
-            paper_txt.write_text("\n\n".join(texts), encoding="utf-8")
+            pt = tmp / "paper_and_supplement.txt"
+            pt.write_text("\n\n".join(texts), encoding="utf-8")
+            state["paper_txt"] = str(pt)
         claims = claims_from_csv_text(sub.get("claims_csv"), adir / "claims_submitted.csv")
-        if not claims and not paper_txt:
-            raise SystemExit("Need either a readable paper PDF or a claims table.")
-
-        (adir / "submission.json").write_text(json.dumps(record, indent=2, ensure_ascii=False))
-        audit = Audit(backend, tmp / "package", adir, paper=paper_txt, claims=claims, **audit_opts)
-        audit.state["title"] = sub["title"]
-        audit.run()
-        build_report(adir)
+        state["claims"] = str(claims) if claims else None
+        state["ok"] = True
     except FetchError as e:
         record["status"] = "could not fetch"
         record["error"] = str(e)
-        (adir / "submission.json").write_text(json.dumps(record, indent=2, ensure_ascii=False))
+        state["ok"] = False
+    (adir / "submission.json").write_text(json.dumps(record, indent=2, ensure_ascii=False))
+    (tmp / "state.json").write_text(json.dumps(state))
+    return adir
+
+
+def audit_materials(materials: Path, backend, **audit_opts) -> Path:
+    """Step 2 (no access to the private uploads): run the audit on what step 1 downloaded."""
+    from .pipeline import Audit
+    from .report import build_report
+
+    materials = Path(materials)
+    state = json.loads((materials / "state.json").read_text())
+    adir = Path(state["adir"])
+    if not state.get("ok"):
+        return adir
+    try:
+        audit = Audit(backend, materials / "package", adir, paper=state.get("paper_txt"), claims=state.get("claims"),
+                      pdfs=state.get("pdfs"), **audit_opts)
+        audit.state["title"] = state["title"]
+        st = audit.run()
+        build_report(adir)
+        sj = adir / "submission.json"
+        rec = json.loads(sj.read_text())
+        if st.get("problem"):
+            rec["status"], rec["error"] = "needs estimates", st["problem"]
+        sj.write_text(json.dumps(rec, indent=2, ensure_ascii=False))
     finally:
-        shutil.rmtree(tmp, ignore_errors=True)
         shutil.rmtree(adir / "work", ignore_errors=True)  # derived data never committed
     return adir
+
+
+def run_intake(body: str, root: Path, backend, issue: int | None = None, issue_url: str | None = None,
+               **audit_opts) -> Path:
+    tmp = Path(tempfile.mkdtemp(prefix="replicaudit_"))
+    try:
+        fetch_materials(body, root, tmp, issue, issue_url)
+        return audit_materials(tmp, backend, **audit_opts)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)

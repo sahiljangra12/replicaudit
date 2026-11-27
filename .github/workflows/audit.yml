@@ -1,85 +1,161 @@
 name: Run audit
 
-# A maintainer adds the label "run-audit" to an audit request. The audit runs in a job with
-# read-only repository access, and its results come back as a pull request for human review.
+# Runs automatically when a request arrives from the website (or the GitHub form), free of charge:
+#   1. fetch the materials (the only step that can read the private uploads),
+#   2. run the authors' own R/Python code and look for every reported number,
+#   3. use a model for Stata translation, missing estimates and robustness checks:
+#      Claude if the ANTHROPIC_API_KEY secret exists, otherwise a free open-source model run on this machine,
+#   4. a separate job with write access publishes the results to the website.
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Request (issue) number to run again
+        required: true
 
 concurrency:
-  group: audit-${{ github.event.issue.number }}
+  group: audits
   cancel-in-progress: false
 
 jobs:
-  run:
-    if: github.event.label.name == 'run-audit' && github.event.sender.login == github.repository_owner
+  audit:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (contains(github.event.issue.labels.*.name, 'audit-request') &&
+       (github.event.action == 'opened' || github.event.label.name == 'run-audit'))
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 340
     permissions:
       contents: read
+      issues: write
     outputs:
-      slug: ${{ steps.audit.outputs.slug }}
+      slug: ${{ steps.fetch.outputs.slug }}
+    env:
+      ISSUE: ${{ github.event.issue.number || inputs.issue }}
+      OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen2.5-coder:7b' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Mark the request as running
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label running --remove-label results-ready,audit-failed || true
+          gh issue view "$ISSUE" -R "$GITHUB_REPOSITORY" --json body,url -q .body > "$RUNNER_TEMP/issue.md"
+          gh issue view "$ISSUE" -R "$GITHUB_REPOSITORY" --json url -q .url > "$RUNNER_TEMP/issue_url.txt"
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt
-      - name: Run the audit
-        id: audit
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install tools
+        run: |
+          pip install -r requirements.txt jupyter nbconvert ipykernel
+          npm install --prefix tools --ignore-scripts --no-optional --silent
+          Rscript -e 'install.packages(c("rmarkdown","knitr"), quiet=TRUE)' || true
+
+      - name: Step 1 — fetch the materials
+        id: fetch
+        env:
+          UPLOADS_REPO: ${{ vars.UPLOADS_REPO }}
+          UPLOADS_TOKEN: ${{ secrets.UPLOADS_TOKEN }}
+        run: |
+          python -m replicaudit intake --step fetch --issue-body "$RUNNER_TEMP/issue.md" \
+            --issue "$ISSUE" --issue-url "$(cat $RUNNER_TEMP/issue_url.txt)" \
+            --audits audits --materials "$RUNNER_TEMP/materials" | tee "$RUNNER_TEMP/fetch.log"
+          dir=$(grep '^AUDIT_DIR=' "$RUNNER_TEMP/fetch.log" | tail -1 | cut -d= -f2-)
+          echo "slug=$(basename "$dir")" >> "$GITHUB_OUTPUT"
+
+      - name: Free open-source model (used only when no Claude key is configured)
+        id: ollama
+        env:
+          HAS_CLAUDE: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          if [ "$HAS_CLAUDE" = "true" ]; then echo "Claude key present; skipping local model"; exit 0; fi
+          curl -fsSL https://ollama.com/install.sh | sh
+          echo "use=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        if: steps.ollama.outputs.use == 'true'
+        with:
+          path: ~/.ollama/models
+          key: ollama-${{ env.OLLAMA_MODEL }}
+      - name: Start the model
+        if: steps.ollama.outputs.use == 'true'
+        run: |
+          sudo systemctl stop ollama 2>/dev/null || true
+          (OLLAMA_MODELS=$HOME/.ollama/models OLLAMA_CONTEXT_LENGTH=16384 ollama serve > "$RUNNER_TEMP/ollama.log" 2>&1 &)
+          for i in $(seq 1 30); do curl -s localhost:11434/api/tags >/dev/null && break; sleep 2; done
+          OLLAMA_MODELS=$HOME/.ollama/models ollama pull "$OLLAMA_MODEL"
+
+      - name: Step 2 — run the audit
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           REPLICAUDIT_MODEL: ${{ vars.REPLICAUDIT_MODEL }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_URL: ${{ github.event.issue.html_url }}
         run: |
-          printf '%s' "$ISSUE_BODY" > "$RUNNER_TEMP/issue.md"
-          python -m replicaudit intake --issue-body "$RUNNER_TEMP/issue.md" \
-            --issue "$ISSUE_NUMBER" --issue-url "$ISSUE_URL" --audits audits | tee "$RUNNER_TEMP/log.txt"
-          dir=$(grep '^AUDIT_DIR=' "$RUNNER_TEMP/log.txt" | tail -1 | cut -d= -f2-)
-          echo "slug=$(basename "$dir")" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: audit
-          path: audits/${{ steps.audit.outputs.slug }}
-          include-hidden-files: false
+          python -m replicaudit intake --step audit --materials "$RUNNER_TEMP/materials" --backend auto
+          rm -rf "$RUNNER_TEMP/materials"
 
-  propose:
-    needs: run
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.fetch.outputs.slug != ''
+        with:
+          name: audit-result
+          path: audits/${{ steps.fetch.outputs.slug }}
+          retention-days: 7
+
+      - name: Report a failure before any results existed
+        if: failure() && steps.fetch.outputs.slug == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label audit-failed --remove-label running || true
+          gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "ReplicAudit could not start this audit. The maintainer has been notified." || true
+
+  publish:
+    needs: audit
+    if: always() && needs.audit.outputs.slug != ''
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
       issues: write
+      actions: write
+    env:
+      ISSUE: ${{ github.event.issue.number || inputs.issue }}
+      SLUG: ${{ needs.audit.outputs.slug }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: audit
-          path: audits/${{ needs.run.outputs.slug }}
-      - uses: peter-evans/create-pull-request@v7
-        id: pr
-        with:
-          branch: audit/issue-${{ github.event.issue.number }}
-          commit-message: "Audit: ${{ needs.run.outputs.slug }} (#${{ github.event.issue.number }})"
-          title: "Audit: ${{ github.event.issue.title }}"
-          body: |
-            Automated audit for #${{ github.event.issue.number }}.
-
-            **Before merging:**
-            - [ ] Claims list checked against the paper and supplement
-            - [ ] Scripts behind every non-reproduced verdict read
-            - [ ] Robustness variants are defensible alternatives (remove any that are not)
-            - [ ] `review.md` written (reviewer, date, assessment)
-            - [ ] Corresponding authors contacted; `authors_contacted` date set in `submission.json`
-            - [ ] After 14 days (or a response): `status` set to `published`; response saved as `author_response.md` if any
-          labels: audit-result
-      - name: Comment on the request
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
-          ISSUE: ${{ github.event.issue.number }}
+          name: audit-result
+          path: audits/${{ needs.audit.outputs.slug }}
+      - name: Save the results
         run: |
-          gh issue comment "$ISSUE" --body "The audit has run. Results are in $PR_URL for review. They will be published after a reviewer has checked them and the authors have been invited to respond."
+          git config user.name "ReplicAudit"
+          git config user.email "replicaudit@users.noreply.github.com"
+          git add "audits/$SLUG"
+          git commit -m "Audit results: $SLUG (request #$ISSUE)" || exit 0
+          for i in 1 2 3; do git pull --rebase -q && git push -q && break; sleep 5; done
+      - name: Rebuild the website and tell the requester
+        run: |
+          gh workflow run pages.yml -R "$GITHUB_REPOSITORY" || true
+          status=$(python3 -c "import json;print(json.load(open('audits/$SLUG/submission.json')).get('status',''))")
+          url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/status.html?r=$ISSUE"
+          if [ "$status" = "could not fetch" ]; then
+            gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label audit-failed --remove-label running || true
+          else
+            gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label results-ready --remove-label running || true
+          fi
+          gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "ReplicAudit finished (status: $status). Results: $url  <!-- slug:$SLUG -->"
+      - name: Mark failure
+        if: failure()
+        run: gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label audit-failed --remove-label running || true

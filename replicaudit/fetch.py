@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -44,6 +45,36 @@ def _download(url: str, dest: Path) -> Path:
             if total > MAX_BYTES:
                 raise FetchError(f"{url} is larger than {MAX_BYTES // 1024**3} GB")
             fh.write(chunk)
+    return dest
+
+
+UPLOAD_RE = re.compile(r"upload://([A-Za-z0-9_-]+)/([^\s)]+)")
+
+
+def fetch_upload(ref: str, dest_dir: Path) -> Path:
+    """Files sent through the website are stored (in parts of up to 4 MB) in a private repository.
+    ref looks like upload://<request id>/<file name>. Needs UPLOADS_REPO and UPLOADS_TOKEN."""
+    m = UPLOAD_RE.search(ref)
+    if not m:
+        raise FetchError(f"bad upload reference: {ref}")
+    rid, name = m.group(1), urllib.parse.unquote(m.group(2))
+    repo, token = os.environ.get("UPLOADS_REPO"), os.environ.get("UPLOADS_TOKEN")
+    if not repo or not token:
+        raise FetchError("UPLOADS_REPO / UPLOADS_TOKEN are not configured, so uploaded files cannot be read")
+    api = f"https://api.github.com/repos/{repo}/contents/{rid}"
+    hdr = {**UA, "Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+    with urllib.request.urlopen(urllib.request.Request(api, headers=hdr), timeout=60) as r:
+        listing = json.loads(r.read().decode())
+    parts = sorted((e for e in listing if e["name"].startswith(name + ".part")), key=lambda e: e["name"])
+    if not parts:
+        raise FetchError(f"uploaded file {name} not found")
+    dest = Path(dest_dir) / name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    raw = {**hdr, "Accept": "application/vnd.github.raw"}
+    with open(dest, "wb") as fh:
+        for e in parts:
+            with urllib.request.urlopen(urllib.request.Request(e["url"], headers=raw), timeout=300) as r:
+                fh.write(r.read())
     return dest
 
 
@@ -85,6 +116,14 @@ def fetch_package(source: str, out: Path) -> dict:
     """Download `source` into folder `out`; returns provenance info."""
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
+    if source.startswith("upload://"):
+        f = fetch_upload(source, out)
+        info = {"source": source, "kind": "upload", "file": f.name}
+        info["unpacked"] = unpack_archives(out)
+        info["manifest"] = manifest(out)
+        info["package_sha256"] = hashlib.sha256(
+            "\n".join(f"{m['sha256']}  {m['path']}" for m in info["manifest"]).encode()).hexdigest()
+        return info
     url = resolve_doi(source)
     host = urllib.parse.urlparse(url).netloc.lower()
     info = {"source": source, "resolved_url": url}
@@ -152,6 +191,8 @@ def fetch_package(source: str, out: Path) -> dict:
 
 def fetch_file(source: str, dest_dir: Path) -> Path:
     """Download a single document (paper or supplement); returns its path."""
+    if source.startswith("upload://"):
+        return fetch_upload(source, Path(dest_dir))
     url = resolve_doi(source)
     name = Path(urllib.parse.urlparse(url).path).name or "document"
     if not Path(name).suffix:

@@ -10,6 +10,7 @@ VERDICTS = {
     "same_sign": "Same sign, different size",
     "different": "Different (sign flipped or not comparable)",
     "failed": "Could not rebuild",
+    "not_found": "Not found in the authors' outputs",
 }
 
 

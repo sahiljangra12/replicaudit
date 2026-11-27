@@ -1,0 +1,6 @@
+{
+  "name": "replicaudit-tools",
+  "private": true,
+  "description": "Server-side helpers for ReplicAudit (PDF estimate finder shared with the website)",
+  "dependencies": { "pdfjs-dist": "3.11.174" }
+}

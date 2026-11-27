@@ -1,118 +1,111 @@
 # ReplicAudit
 
-**Open, automated replication audits of published empirical research.**
+**Open, automated replication audits of published empirical research. Free to run.**
 Website: https://sahiljangra12.github.io/replicaudit/
 
-ReplicAudit takes a published paper and its public replication package (data + code). It re-runs the analysis, checks every reported estimate against the paper, and tests whether the headline result survives reasonable alternative choices. Every script, model prompt, model answer and file checksum is published, and a person reviews each audit before it appears in the registry.
+Someone submits a paper on the website: its DOI, the replication package, the paper PDF and any supplementary files, as links or uploads. ReplicAudit runs the authors' own code, checks every reported estimate against the paper, rebuilds what it can't run, stress-tests the headline result, and shows the results on the website. Every script, log and checksum is public, and a person reviews each audit before it joins the registry.
 
-## How a paper gets audited
-
-```
-Submission form (GitHub issue)  ──►  maintainer adds label "run-audit"
-        │
-        ▼
-GitHub Action, read-only job:  fetch package → checksums → claims → rebuild data → re-estimate → robustness
-        │
-        ▼
-Pull request with audits/<slug>/  ──►  human review + authors invited to reply (≥14 days)
-        │
-        ▼
-Merge with status "published"  ──►  website rebuilt and deployed by GitHub Pages
-```
-
-**Submitting:** fill in the form on the website's [Submit page](https://sahiljangra12.github.io/replicaudit/submit.html). It fills in the paper's details from its DOI, accepts each material as a link or a file (any number of supplementary files), reads chosen PDFs in the browser to suggest the estimates to check, and hands everything to a pre-filled GitHub request, which the submitter sends from their own account so the request is on the public record. The [GitHub form](https://github.com/sahiljangra12/replicaudit/issues/new?template=audit-request.yml) can also be used directly. It asks for:
-
-| Item | How |
-|---|---|
-| Paper title, authors, journal, DOI | typed |
-| Replication package (required) | DOI or link: Zenodo, Dataverse, OSF, GitHub repo, direct .zip, or attach a .zip ≤ 25 MB. Inner .zip/.rar/.7z/.tar.gz archives are unpacked. |
-| Paper PDF | open-access link or attachment (not stored) |
-| Supplementary materials | any number of links and/or files; PDFs are read for estimates, other files (.zip, .xlsx, .csv) join the package |
-| Claims table (optional) | `id,description,b,se,n,main`, numbers exactly as printed; otherwise extracted from the PDF |
-
-## Repository layout
+## How it works
 
 ```
-replicaudit/          the pipeline
-  fetch.py            download from DOI/Zenodo/Dataverse/OSF/GitHub/URL, unpack archives, SHA-256 manifest
-  intake.py           parse the submission form → audits/<slug>/
-  pipeline.py         profile → claims → prepare data → rebuild each claim → compare → robustness
-  sandbox.py          runs model-written scripts in a separate process, no credentials, with a timeout
-  compare.py          verdicts at the paper's reported precision
-  backends.py         Claude (Anthropic API), any OpenAI-compatible server (e.g. Ollama), replay
-  report.py, site.py  machine report and the website
-audits/<slug>/        one folder per audit: submission.json, audit.json, results.csv, scripts/, llm_log/,
-                      review.md (reviewer), author_response.md (authors)
-site_src/             website stylesheet and script
-.github/              submission form; workflows for audits, the website and tests
+Website (GitHub Pages)  ──►  intake function (Netlify, free)  ──►  request recorded + files kept private
+        ▲                                                              │
+        │                                                              ▼
+ status page shows results  ◄──  results saved  ◄──  GitHub Actions (free on public repos)
+                                                        1. fetch materials, checksum every file
+                                                        2. run the authors' R / Python code as published
+                                                           and find every reported number in its output
+                                                        3. AI stage: Stata → Python, anything not found,
+                                                           robustness checks (free open-source model on
+                                                           the same machine, or Claude if a key is set)
 ```
 
-Authors' data and papers are **never committed**; only checksums, our scripts and our results are.
+* **No account needed** to submit. The visitor never leaves the website.
+* **Estimates to check** can be typed, pasted from a spreadsheet, picked from suggestions (the website reads the PDF's tables in the browser), or left empty (the same table reader runs on the server).
+* **Free:** standard GitHub Actions runners are free on public repositories, and the intake function fits in Netlify's free plan. The AI stage uses an open-source model (`qwen2.5-coder:7b` by default, set by the `OLLAMA_MODEL` variable) served by Ollama on the runner. If an `ANTHROPIC_API_KEY` secret is added, Claude is used instead.
+* **Stata:** there is no free Stata, so Stata analyses are translated to Python by the AI stage.
 
 ## Maintainer setup (once)
 
-1. Repository **Settings → Secrets and variables → Actions**: add secret `ANTHROPIC_API_KEY`. Optionally add variable `REPLICAUDIT_MODEL` (default `claude-sonnet-5-5`).
-2. **Settings → Pages → Source: GitHub Actions.**
-3. **Settings → Actions → General → Workflow permissions:** allow GitHub Actions to create pull requests.
-4. Create the labels `audit-request`, `run-audit` and `audit-result`.
+1. **Private uploads repository.** Create an empty **private** repo `replicaudit-uploads`. Files sent through the website go there and are never published.
+2. **One access token.** GitHub → Settings → Developer settings → Fine-grained tokens → Generate. Repository access: `replicaudit` and `replicaudit-uploads`. Permissions: **Issues: Read and write** and **Contents: Read and write**. Copy the token.
+3. **Netlify** (project `replicaudit-intake`):
+   * Project configuration → Environment variables → add `GH_INTAKE_TOKEN` = the token (scope: Functions).
+   * Project configuration → Build & deploy → **Link repository** → GitHub → `sahiljangra12/replicaudit` (branch `main`). Every push then deploys the function.
+4. **GitHub repo `replicaudit` → Settings:**
+   * Secrets and variables → Actions → **Secret** `UPLOADS_TOKEN` = the same token; **Variable** `UPLOADS_REPO` = `sahiljangra12/replicaudit-uploads`.
+   * Pages → Source → **GitHub Actions**.
 
-## Publishing an audit (reviewer checklist)
+Optional: secret `ANTHROPIC_API_KEY` to use Claude instead of the free model; variable `OLLAMA_MODEL` to choose a different free model.
 
-In the pull request: check the claims against the paper, read the scripts behind every non-reproduced verdict, delete any robustness variant that is not a defensible alternative, and write `review.md`:
+## Reviewing and publishing
 
-```
----
-reviewer: Your Name
-date: 2026-12-15
----
-Short assessment in plain language.
-```
+New audits appear at once on the requester's status page and as an *unreviewed* page on the website, but not in the registry. To publish one, in `audits/<slug>/`:
 
-Email the corresponding authors and record `"authors_contacted": "YYYY-MM-DD"` in `submission.json`. After 14 days or a reply, set `"status": "published"`, save any reply as `author_response.md`, and merge.
+1. Check the estimates, the scripts behind anything not reproduced, and the robustness variants.
+2. Write `review.md`:
+   ```
+   ---
+   reviewer: Your Name
+   date: 2026-12-15
+   ---
+   Short assessment in plain language.
+   ```
+3. Email the corresponding authors and set `"authors_contacted": "YYYY-MM-DD"` in `submission.json`.
+4. After 14 days or a reply, set `"status": "published"` (save any reply as `author_response.md`) and commit. The site rebuilds itself.
 
 ## Running locally
 
 ```bash
 pip install -r requirements.txt
+npm install --prefix tools --ignore-scripts      # PDF table reader (optional)
 
-# with Claude (ANTHROPIC_API_KEY set)
-python -m replicaudit run --package path/to/package --paper paper.pdf --out runs/mypaper
+# no AI: run the authors' code, find the estimates
+python -m replicaudit run --backend none --package path/to/package --paper paper.pdf --out runs/mypaper
 
-# with a free local model through Ollama
-python -m replicaudit run --backend openai --model qwen2.5-coder:32b --base-url http://localhost:11434/v1 \
-    --package path/to/package --claims claims.csv --out runs/mypaper
+# with a free local model (Ollama running) or Claude (ANTHROPIC_API_KEY set): --backend auto
+python -m replicaudit run --backend auto --package path/to/package --claims claims.csv --out runs/mypaper
 
-# replay a published audit exactly (no model): its saved answers are in audits/<slug>/llm_log
-python -m replicaudit run --backend replay --fixtures audits/<slug>/llm_log \
-    --package path/to/package --claims audits/<slug>/claims_submitted.csv --out runs/replay
+# replay a published audit exactly, from its saved model answers
+python -m replicaudit run --backend replay --fixtures audits/<slug>/llm_log --package path/to/package \
+    --claims audits/<slug>/claims_submitted.csv --out runs/replay
 
-# the website, including drafts
-python -m replicaudit site --out _site --include-drafts
+python -m replicaudit site --out _site            # build the website
 ```
 
 ## Verdicts
 
 | Verdict | Meaning |
 |---|---|
-| Reproduced | b and se equal the paper's after rounding to its printed decimals; N matches where reported |
+| Reproduced | b and se equal the paper's after rounding to its printed decimals (N too, where reported) |
 | Close | same sign and within 5%, or exact b with a different N |
-| Size differs | same sign, different magnitude |
-| Sign differs | sign reversed |
-| Not rebuilt | no working script within 4 attempts (a statement about the pipeline, not the paper) |
+| Size differs / Sign differs | direction holds but size doesn't / sign reversed |
+| Not rebuilt | the AI stage could not produce a working script |
+| Not found | the number was not in the authors' outputs and no rebuild succeeded (not evidence of an error) |
 
-A headline result is **fragile** when fewer than 75% of robustness variants keep its sign and 5% significance. The full protocol is on the [Methods](https://sahiljangra12.github.io/replicaudit/methods.html) page.
+Each estimate also shows **how** it was checked: *authors' own code* or *AI rebuild*. A headline result is **fragile** when fewer than 75% of robustness variants keep its sign and 5% significance. The full protocol is on the [Methods](https://sahiljangra12.github.io/replicaudit/methods.html) page.
 
 ## Safeguards
 
-- Scripts that contain the paper's reported value as a literal are rejected.
-- API keys and tokens are removed from every script's environment. The audit job has read-only repository access; a separate job opens the pull request.
-- Issue text is passed to scripts through environment variables, never pasted into shell commands.
-- Nothing is published without human review and an invitation to the authors to reply.
+* Authors' code and model-written scripts run with credentials removed from their environment and with time limits. The job that runs them can only read the repository; a separate job saves the results.
+* The private-uploads token is used only in the download step, before any untrusted code runs.
+* Scripts that contain the paper's reported value as a literal are rejected.
+* Uploaded files and authors' data are never published; derived data files are not saved.
+* Nothing joins the registry without human review and an invitation to the authors to reply.
 
-## Related work
+## Layout
 
-CORE-Bench, REPRO-Bench, ReplicatorBench, PaperBench and ReplicationBench benchmark AI agents on reproduction tasks; the Institute for Replication runs human replication games. ReplicAudit runs audits on published literature, reports robustness alongside reproduction, and starts with environmental and sustainability research.
+```
+replicaudit/   fetch.py (DOI/Zenodo/Dataverse/OSF/GitHub/zip/uploads) · intake.py · runcode.py (authors' code)
+               match.py (find estimates in output) · pipeline.py · backends.py · sandbox.py · compare.py
+               prompts.py · report.py · site.py · cli.py
+site_src/      website styles and scripts (form, PDF estimate finder, status page) + bundled pdf.js
+netlify/       intake function (website → private uploads + request)
+tools/         server-side PDF table reader (same code as the website)
+audits/        one folder per audit
+.github/       workflows (audit, website, tests) and the request form
+```
 
 ## Licence
 
-Code: MIT. Audit reports: CC BY 4.0. Please cite using `CITATION.cff`.
+Code: MIT. Audit reports: CC BY 4.0. Bundled pdf.js: Apache-2.0. Please cite using `CITATION.cff`.

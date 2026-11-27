@@ -5,3 +5,4 @@ work/
 audits/*/work/
 _site/
 .pytest_cache/
+node_modules/

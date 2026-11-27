@@ -107,8 +107,30 @@ class LoggingBackend(Backend):
         return out
 
 
+def _ollama_up(url: str) -> bool:
+    import urllib.request
+    try:
+        with urllib.request.urlopen(url.rstrip("/").removesuffix("/v1") + "/api/tags", timeout=3) as r:
+            return r.status == 200
+    except Exception:
+        return False
+
+
 def make_backend(kind: str, model: str | None = None, fixtures: str | None = None,
-                 base_url: str | None = None) -> Backend:
+                 base_url: str | None = None) -> Backend | None:
+    """kind='auto': Claude if ANTHROPIC_API_KEY is set, else a local open-source model served by Ollama
+    (free, runs on the same machine) if one is running, else no AI (authors' code and PDF tables only)."""
+    if kind == "none":
+        return None
+    if kind == "auto":
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            return AnthropicBackend(model)
+        url = base_url or os.environ.get("OLLAMA_URL", "http://localhost:11434/v1")
+        if _ollama_up(url):
+            b = OpenAICompatBackend(model or os.environ.get("OLLAMA_MODEL", "qwen2.5-coder:7b"), url, "ollama")
+            b.name = "ollama (open-source, free)"
+            return b
+        return None
     if kind == "anthropic":
         return AnthropicBackend(model)
     if kind == "openai":
