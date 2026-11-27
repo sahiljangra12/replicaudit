@@ -1,0 +1,43 @@
+{
+  "slug": "test-2026-test-request-small-202611270437",
+  "issue": 3,
+  "issue_url": "https://github.com/sahiljangra12/replicaudit/issues/3",
+  "submitted": "2026-11-27",
+  "status": "unreviewed",
+  "title": "Test request: small R package",
+  "authors": "Test",
+  "journal_year": "Test 2026",
+  "doi": "10.1126/science.aaa0001",
+  "field": "Other",
+  "relationship": "Not stated",
+  "notes": "Automated timing test.",
+  "package": {
+    "source": "https://github.com/sahiljangra12/replicaudit/tree/main/examples/test-package",
+    "resolved_url": "https://github.com/sahiljangra12/replicaudit/tree/main/examples/test-package",
+    "kind": "github",
+    "repo": "sahiljangra12/replicaudit",
+    "ref": "main",
+    "commit": "27a997c348212a5ce657ddb0443da1218ce6596b",
+    "folder": "examples/test-package",
+    "unpacked": [],
+    "manifest": [
+      {
+        "path": "README.md",
+        "bytes": 372,
+        "sha256": "2ddec51f64c016872a314bd1c8cb3ea4a62bfe6fb6ef7248080a6b6140990159"
+      },
+      {
+        "path": "data.csv",
+        "bytes": 8799,
+        "sha256": "bbd1422fd907a29d6a783bf76db5e9294280907ebb9afd599bc9990ccc4dfc10"
+      },
+      {
+        "path": "main.R",
+        "bytes": 135,
+        "sha256": "9191de5e7cc548bb8eaf7db3e266f49ae9fa5bed77884770bb33e4417000045f"
+      }
+    ],
+    "package_sha256": "0572f45bfa32cb3d4bb0eaaced34082d05a64c7fd7ca1fcac634770a1255d4f3"
+  },
+  "supplement": []
+}

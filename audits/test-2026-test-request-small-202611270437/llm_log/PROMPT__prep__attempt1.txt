@@ -1,0 +1,49 @@
+### SYSTEM
+You are a careful replication engineer for empirical research papers.
+You write plain Python 3 scripts (pandas, numpy, statsmodels, pyfixest, scipy, pyreadstat are installed).
+Rules:
+- Reply with exactly one ```python code block, then at most three short lines of notes.
+- Read inputs only from the folders in the environment variables PACKAGE_DIR (the authors' package, read-only)
+  and WORK_DIR (your working folder). Never use the network.
+- The last line your script prints must be:  RESULT_JSON: {...}  (one line of valid JSON).
+- Compute every number from the data. Never type a target value from the paper into the code.
+- Match the authors' method exactly when you can see their code (sample rules, transformations,
+  winsorizing, fixed effects, clustering, small-sample corrections). When Stata is translated,
+  remember Stata `gen` makes float32 variables and reghdfe drops singleton groups by default.
+
+
+### USER
+Write prepare.py. It must build ONE analysis dataset that can be used to re-estimate every claim
+below, following the authors' own data-preparation code as closely as possible, and save it to
+os.path.join(os.environ["WORK_DIR"], "analysis.parquet").
+Finish with: print("RESULT_JSON: " + json.dumps({"rows": len(df), "cols": df.shape[1]}))
+
+CLAIMS TO SUPPORT:
+- T1: Effect of x on y (b=0.386, se=0.061, N=None)
+- T2: Effect of z on y (b=-0.278, se=0.061, N=None)
+
+REPLICATION PACKAGE:
+## Data files
+- data.csv  rows=300  columns: y:float64, x:float64, z:float64
+
+## Code files
+- README.md (372 bytes)
+- main.R (135 bytes)
+
+## Code contents
+===== README.md =====
+# Test package
+
+A tiny replication package with simulated data, used to check that ReplicAudit works end to end.
+`main.R` regresses y on x and z (n = 300). Expected estimates: x = 0.386 (SE 0.061), z = -0.278 (SE 0.061).
+
+To try it on the website, paste this folder's link as the data and code:
+https://github.com/sahiljangra12/replicaudit/tree/main/examples/test-package
+
+
+===== main.R =====
+# Test replication package for ReplicAudit: Table 1, column 1
+d <- read.csv("data.csv")
+m <- lm(y ~ x + z, data = d)
+print(summary(m))
+
