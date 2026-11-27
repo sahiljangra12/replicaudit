@@ -168,5 +168,28 @@
     });
   }
 
-  window.RAEstimates = { fromArrayBuffer: fromArrayBuffer };
+  // Full text of a PDF (used to find data/code links such as Zenodo, Dataverse, OSF or GitHub addresses).
+  function textOf(buf, maxPages) {
+    var lib = window.pdfjsLib;
+    return lib.getDocument({ data: new Uint8Array(buf) }).promise.then(function (pdf) {
+      var n = Math.min(pdf.numPages, maxPages || 120), parts = [], chain = Promise.resolve();
+      for (var p = 1; p <= n; p++) (function (p) {
+        chain = chain.then(function () { return pdf.getPage(p); }).then(function (pg) { return pg.getTextContent(); })
+          .then(function (tc) { parts.push(tc.items.map(function (i) { return i.str; }).join(" ")); });
+      })(p);
+      return chain.then(function () { return parts.join("\n"); });
+    });
+  }
+  var REPO_RE = /(https?:\/\/)?(doi\.org\/10\.5281\/zenodo\.\d+|zenodo\.org\/(records?|record)\/\d+|doi\.org\/10\.7910\/DVN\/[A-Z0-9]+|[a-z.]*dataverse[a-z.]*\/dataset\.xhtml\?persistentId=doi:[^\s)]+|osf\.io\/[a-z0-9]{5}|github\.com\/[\w.-]+\/[\w.-]+|datadryad\.org\/stash\/dataset\/doi:[^\s)]+|doi\.org\/10\.5061\/dryad\.[a-z0-9]+|doi\.org\/10\.3886\/E\d+V\d+|figshare\.com\/[^\s)]+|doi\.org\/10\.6084\/m9\.figshare\.\d+)/gi;
+  function repoLinks(text) {
+    var seen = {}, out = [];
+    (String(text).match(REPO_RE) || []).forEach(function (m) {
+      var u = m.replace(/[.,;)\]]+$/, ""); if (!/^https?:/i.test(u)) u = "https://" + u;
+      if (/github\.com\/(orgs|features|about|login)/i.test(u)) return;
+      if (!seen[u.toLowerCase()]) { seen[u.toLowerCase()] = 1; out.push(u); }
+    });
+    return out;
+  }
+
+  window.RAEstimates = { fromArrayBuffer: fromArrayBuffer, textOf: textOf, repoLinks: repoLinks };
 })();

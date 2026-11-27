@@ -11,14 +11,14 @@ const PUBLIC_REPO = "sahiljangra12/replicaudit"
 const UPLOADS_REPO = "sahiljangra12/replicaudit-uploads"
 const ALLOWED_ORIGINS = ["https://sahiljangra12.github.io", "http://localhost:8766"]
 const MAX_PART = 3_600_000
-const MAX_PARTS = 8 // 8 × 3.5 MB ≈ 28 MB per file
+const MAX_PARTS = 34 // 34 × 3 MB ≈ 100 MB per file
 const OK_EXT = /\.(zip|gz|tgz|pdf|xlsx|xls|csv|docx|txt|json)$/i
 
 function cors(req: Request): Record<string, string> {
   const o = req.headers.get("origin") || ""
   return {
     "Access-Control-Allow-Origin": ALLOWED_ORIGINS.includes(o) ? o : ALLOWED_ORIGINS[0],
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "content-type",
     "Vary": "Origin",
   }
@@ -46,7 +46,7 @@ async function upload(req: Request, url: URL) {
   const part = Number(url.searchParams.get("part")), parts = Number(url.searchParams.get("parts"))
   if (!/^[a-f0-9]{16}$/.test(rid)) return reply(req, 400, { error: "bad request id" })
   if (!name || !OK_EXT.test(name)) return reply(req, 400, { error: "file type not accepted" })
-  if (!(part >= 1 && part <= parts && parts <= MAX_PARTS)) return reply(req, 400, { error: "file too large (max ~28 MB); please use a Zenodo link" })
+  if (!(part >= 1 && part <= parts && parts <= MAX_PARTS)) return reply(req, 400, { error: "file too large (max 100 MB); please use a Zenodo link" })
   const buf = new Uint8Array(await req.arrayBuffer())
   if (!buf.length || buf.length > MAX_PART) return reply(req, 400, { error: "bad part size" })
   let bin = ""
@@ -69,9 +69,7 @@ async function submit(req: Request) {
   if (clean(f.website)) return reply(req, 200, { ok: true, number: 0 }) // honeypot: bots fill hidden fields
   const title = clean(f.title, 300), doi = clean(f.doi, 200).replace(/^https?:\/\/(dx\.)?doi\.org\//i, "")
   const pkg = clean(f.package, 2000)
-  const missing = [["title", title], ["DOI", doi], ["replication package", pkg], ["authors", clean(f.authors)],
-                   ["journal", clean(f.journal)], ["field", clean(f.field)], ["relationship", clean(f.relationship)]]
-    .filter(([, v]) => !v).map(([k]) => k)
+  const missing = [["title", title], ["DOI", doi], ["data and code", pkg]].filter(([, v]) => !v).map(([k]) => k)
   if (missing.length) return reply(req, 400, { error: "missing: " + missing.join(", ") })
   if (!/^10\.\d{4,9}\/\S+$/.test(doi)) return reply(req, 400, { error: "the DOI does not look valid" })
   const claims = clean(f.claims, 20000)
@@ -84,8 +82,8 @@ async function submit(req: Request) {
     section("Replication package", pkg) +
     section("Supplementary materials", clean(f.supplement, 6000)) +
     section("Claims to check (optional)", claims ? "```csv\n" + claims + "\n```" : "") +
-    section("Field", clean(f.field, 100)) +
-    section("Your relationship to the paper", clean(f.relationship, 100)) +
+    section("Field", clean(f.field, 100) || "Not stated") +
+    section("Your relationship to the paper", clean(f.relationship, 100) || "Not stated") +
     section("Notes for the auditors", clean(f.notes, 4000)) +
     "### Confirmation\n\n- [X] The replication materials are publicly available and I am allowed to point to them.\n" +
     "- [X] I understand the results are shown openly on the website.\n\n" +
@@ -99,8 +97,12 @@ async function submit(req: Request) {
 
 export default async (req: Request, context: Context) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(req) })
-  if (req.method !== "POST") return reply(req, 405, { error: "POST only" })
   const url = new URL(req.url)
+  if (url.pathname.endsWith("/health")) {
+    const ready = Boolean(Netlify.env.get("GH_INTAKE_TOKEN"))
+    return reply(req, ready ? 200 : 503, { ok: ready })
+  }
+  if (req.method !== "POST") return reply(req, 405, { error: "POST only" })
   try {
     if (url.pathname.endsWith("/upload")) return await upload(req, url)
     if (url.pathname.endsWith("/submit")) return await submit(req)
@@ -112,7 +114,7 @@ export default async (req: Request, context: Context) => {
 }
 
 export const config: Config = {
-  path: ["/api/upload", "/api/submit"],
-  method: ["POST", "OPTIONS"],
+  path: ["/api/upload", "/api/submit", "/api/health"],
+  method: ["GET", "POST", "OPTIONS"],
   rateLimit: { action: "rate_limit", aggregateBy: ["ip", "domain"], windowSize: 60, windowLimit: 40 },
 }

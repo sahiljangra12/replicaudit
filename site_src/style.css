@@ -253,3 +253,30 @@ footer .links{display:flex;gap:20px;flex-wrap:wrap}
 .sugg{margin:6px 0 0;padding-left:20px}
 .sugg li{margin:0 0 14px;font-size:16px;line-height:1.45}
 .sugg li .small{margin-top:3px}
+
+/* audit-a-paper page */
+.qbox{display:flex;gap:10px;max-width:720px;margin:34px auto 0;background:var(--card);border-radius:980px;padding:8px;box-shadow:var(--shadow);border:1px solid var(--hair)}
+.qbox .q{border:0;box-shadow:none;font-size:19px;padding:12px 18px;border-radius:980px;background:transparent}
+.qbox .q:focus{box-shadow:none}
+.qbox .btn{flex:none}
+.linkbtn{appearance:none;border:0;background:none;color:var(--link);font:15px var(--font);padding:0;margin-top:10px;cursor:pointer}
+.mlist{display:grid;gap:10px}
+.mrow{display:flex;gap:14px;align-items:flex-start;background:var(--bg-alt);border-radius:12px;padding:14px 16px}
+.mrow i{font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;flex:none}
+.mrow.ok i{background:var(--green);color:#fff}.mrow.opt i{background:var(--gray-soft);color:var(--ink-2)}.mrow.need i{background:var(--amber);color:#fff}
+.mrow b{display:block;font-size:16px}.mrow span{color:var(--ink-2);font-size:14px}
+.cands{display:grid;gap:8px;margin:-2px 0 4px 40px}
+.cand{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--hair-2);border-radius:10px;cursor:pointer;background:var(--card)}
+.cand input{margin-top:3px;accent-color:var(--blue)}
+.cand b{display:block;font-size:15px;font-weight:600}
+.cand .small{display:block}
+.drop.big{padding:34px 20px;border-width:2px}
+details.more{margin-top:18px;border-top:1px solid var(--hair);padding-top:14px}
+details.more summary{cursor:pointer;font-weight:600;font-size:16px;list-style:none}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::before{content:"›";display:inline-block;margin-right:8px;transition:transform .2s;color:var(--ink-3)}
+details.more[open] summary::before{transform:rotate(90deg)}
+details.more .opt{color:var(--ink-3);font-weight:400}
+.item select{font:13px var(--font);border:1px solid var(--hair-2);border-radius:7px;padding:3px 6px;background:var(--card);color:var(--ink)}
+@media (max-width:680px){.qbox{flex-direction:column;border-radius:18px}.qbox .btn{justify-content:center}.cands{margin-left:0}}
+[hidden]{display:none!important}

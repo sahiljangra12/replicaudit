@@ -54,7 +54,7 @@ def pill(kind, text=None):
 
 def page(title, body, depth=0, active="", desc="", extra_js="", body_attrs=""):
     up = "../" * depth
-    nav = [("index.html", "Registry"), ("submit.html", "Submit"), ("status.html", "Track a request"),
+    nav = [("index.html", "Registry"), ("submit.html", "Audit a paper"), ("status.html", "Track a request"),
            ("methods.html", "Methods"), ("policy.html", "Policy")]
     links = "".join(
         f'<a href="{h if h.startswith("http") else up + h}"{" aria-current=page" if h == active else ""}>{E(t)}</a>'
@@ -78,7 +78,7 @@ def page(title, body, depth=0, active="", desc="", extra_js="", body_attrs=""):
 <footer><div class="wrap"><div class="cols">
 <div>Audits are produced by an automated pipeline and checked by a person before publication.<br>
 Each published audit comes with a full PDF report.</div>
-<div class="links"><a href="{up}index.html">Registry</a><a href="{up}submit.html">Submit a paper</a><a href="{up}methods.html">Methods</a><a href="{up}policy.html">Policy</a><a href="{REPO}">Source code</a></div></div>
+<div class="links"><a href="{up}index.html">Registry</a><a href="{up}submit.html">Audit a paper</a><a href="{up}methods.html">Methods</a><a href="{up}policy.html">Policy</a><a href="{REPO}">Source code</a></div></div>
 <div>ReplicAudit v{__version__} · Code MIT · Audit reports CC BY 4.0 · Maintained by Sahil, Johns Hopkins University</div></div></footer>
 </body></html>"""
 
@@ -200,7 +200,7 @@ def index_page(audits):
             f'<div class="chev">›</div></a>')
     listing = "".join(rows) or ('<div class="empty"><div class="h3" style="margin-bottom:8px">No published audits yet.</div>'
                                 'Audits appear here once they have been reviewed and published with their report.<br><br>'
-                                '<a class="btn small" href="submit.html">Submit the first paper</a></div>')
+                                '<a class="btn small" href="submit.html">Audit the first paper</a></div>')
     pct = f"{n_exact / n_claims:.0%}" if n_claims else "—"
     stats = f"""<section class="sec alt tight"><div class="wrap wide"><div class="grid g4">
 <div class="card stat reveal"><div class="num">{len(audits)}</div><div class="lbl">papers audited</div></div>
@@ -214,8 +214,8 @@ def index_page(audits):
 <section class="sec center" style="padding-top:110px"><div class="wrap">
 <p class="eyebrow reveal">Open replication registry</p>
 <h1 class="display reveal">Does the published<br>result hold up?</h1>
-<p class="lead reveal">ReplicAudit re-runs published empirical studies from their own data and code, checks every reported number, and tests whether the headline finding survives reasonable alternative choices. Every script and checksum is public.</p>
-<div class="btns reveal"><a class="btn" href="submit.html">Submit a paper</a><a class="btn secondary" href="methods.html">Read the protocol</a></div>
+<p class="lead reveal">Paste a paper's DOI. ReplicAudit finds its data and code, re-runs the analysis, checks every reported number, and tests whether the headline finding survives reasonable alternatives. Any field, free, fully open.</p>
+<div class="btns reveal"><a class="btn" href="submit.html">Audit a paper</a><a class="btn secondary" href="methods.html">Read the protocol</a></div>
 </div></section>
 
 {stats}<section class="sec"><div class="wrap wide">
@@ -239,8 +239,8 @@ def index_page(audits):
 
 <section class="sec center"><div class="wrap">
 <h2 class="h1 reveal">Have a paper in mind?</h2>
-<p class="lead reveal">Authors, referees, students and readers can all request an audit. All you need is the paper's DOI and a link to its replication package.</p>
-<div class="btns reveal"><a class="btn" href="submit.html">Submit a paper</a></div>
+<p class="lead reveal">Authors, referees, students and readers can all request an audit. Usually the DOI is all it takes.</p>
+<div class="btns reveal"><a class="btn" href="submit.html">Audit a paper</a></div>
 </div></section>"""
     return page("Registry", body, 0, "index.html")
 
@@ -466,7 +466,7 @@ METHODS_TOC = [("scope", "Scope"), ("provenance", "Provenance"), ("claims", "Cla
                ("limits", "Limitations")]
 METHODS = """
 <h2 id="scope"><span class="num-h">1</span>Scope</h2>
-<p>We audit quantitative empirical papers whose data and code, the <i>replication package</i>, are publicly available. Environmental, ecological, energy and sustainability research comes first. We do not collect new data, so an audit tests <b>computational reproducibility</b> (same data, same method, same numbers) and <b>robustness</b> (same data, reasonable alternative choices). It does not test replicability in new samples.</p>
+<p>We audit quantitative empirical papers in any field whose data and code, the <i>replication package</i>, are available, either publicly or sent to us by the requester. Code in R and Python is run as published; Stata code is translated to Python; other languages are rebuilt from the paper and code by the AI stage. We do not collect new data, so an audit tests <b>computational reproducibility</b> (same data, same method, same numbers) and <b>robustness</b> (same data, reasonable alternative choices). It does not test replicability in new samples.</p>
 <h2 id="provenance"><span class="num-h">2</span>Inputs and provenance</h2>
 <p>For each paper we record the DOI, the exact source and version of the replication package, and a SHA-256 checksum of every file. Archives inside the package are unpacked and listed. Packages and papers are downloaded for the run and are never redistributed. The checksums let anyone confirm that they are auditing the same files.</p>
 <h2 id="claims"><span class="num-h">3</span>Claims</h2>
@@ -500,7 +500,7 @@ METHODS = """
 <li>Packages with restricted data, or that need a login, cannot be audited automatically.</li>
 </ul>
 <h2 id="related"><span class="num-h">·</span>Related work</h2>
-<p>ReplicAudit builds on reproducibility benchmarks for AI agents (CORE-Bench, REPRO-Bench, ReplicatorBench, PaperBench, ReplicationBench) and on human efforts such as the Institute for Replication. It differs in auditing published literature rather than benchmarks, and in reporting robustness alongside reproduction.</p>"""
+<p>ReplicAudit builds on reproducibility benchmarks for AI agents (CORE-Bench, REPRO-Bench, ReplicatorBench, PaperBench, ReplicationBench) and on human efforts such as the Institute for Replication. It differs in auditing published literature rather than benchmarks, in being open to any field, and in reporting robustness alongside reproduction.</p>"""
 
 POLICY_TOC = [("purpose", "Purpose"), ("language", "Language"), ("corrections", "Corrections"),
               ("ai", "Use of AI"), ("data", "Data"), ("contact", "Contact")]
@@ -520,96 +520,72 @@ POLICY = """
 
 
 def submit_page():
-    fopts = "".join(f"<option>{E(f)}</option>" for f in FIELDS)
-    body = f"""
-<section class="sec center" style="padding-bottom:56px"><div class="wrap">
-<p class="eyebrow">Submit a paper</p>
-<h1 class="h1">Request an audit.</h1>
-<p class="lead">Paste a DOI and add the data and code. Most of the rest fills itself in. The audit runs automatically and its results appear here on the website.</p>
+    body = """
+<section class="sec center" style="padding:96px 0 36px"><div class="wrap">
+<p class="eyebrow">Audit a paper</p>
+<h1 class="display" style="font-size:clamp(40px,6vw,64px)">Paste a DOI.<br>We'll find the rest.</h1>
+<p class="lead">Any quantitative paper, any field. The paper, its open-access PDF and its replication package are looked up automatically. Add files only if something can't be found.</p>
+<div class="note amber" id="down" hidden style="max-width:640px;margin:24px auto 0;text-align:left"><b>Submissions are paused.</b> The submission service isn't reachable right now, so a request can't be sent. Please try again later.</div>
+<div class="qbox"><input id="q" class="field-in q" placeholder="10.1126/science.abc1234 or a link to the paper" autocapitalize="off" spellcheck="false" autocomplete="off" autofocus aria-label="DOI or link to the paper">
+<button class="btn" id="find" type="button">Find</button></div>
+<div class="detect" id="q-msg" style="margin-top:10px"></div>
 </div></section>
-<section class="sec alt" style="padding-top:56px"><div class="wrap">
-<div class="note" id="restored" style="display:none;margin-top:0;display:none">Your unsent request was restored from this browser. <a href="#" id="clear" onclick="return false">Clear form</a></div>
-<form class="form" id="form" onsubmit="return false" novalidate>
 
-<div class="fset"><h3><span class="badge">1</span>The paper</h3><p>Start with the DOI. The title, authors and journal fill in automatically, and you can edit them.</p>
-<div class="frow">
-<div class="f full"><label for="doi">DOI</label><input class="field-in" id="doi" data-label="DOI" placeholder="10.xxxx/xxxxx, or paste a doi.org link" autocapitalize="off" spellcheck="false" autofocus><div class="detect" id="doi-detect"></div></div>
-<div class="f full"><label for="title">Title</label><input class="field-in" id="title" data-label="Title" placeholder="Filled in from the DOI"></div>
-<div class="f"><label for="authors">Authors</label><input class="field-in" id="authors" data-label="Authors" placeholder="Filled in from the DOI"></div>
-<div class="f"><label for="journal">Journal and year</label><input class="field-in" id="journal" data-label="Journal and year" placeholder="Filled in from the DOI"></div>
-<div class="f"><label for="field">Field</label><select class="field-in" id="field" data-label="Field"><option value="">Choose…</option>{fopts}</select></div>
-<div class="f"><label for="relationship">Your relationship to the paper</label><select class="field-in" id="relationship" data-label="Relationship"><option value="">Choose…</option><option>Not an author</option><option>I am an author</option><option>Author of a related or competing paper</option></select></div>
-</div></div>
+<section class="sec alt" id="found" hidden style="padding-top:48px"><div class="wrap" style="max-width:820px">
+<div class="card" style="padding:32px">
+<p class="eyebrow muted" style="font-size:14px;margin-bottom:6px">The paper</p>
+<h2 class="h3" id="paper-title" style="font-size:26px;line-height:1.2"></h2>
+<p class="sub" id="paper-meta" style="margin:6px 0 0"></p>
+<button type="button" class="linkbtn" id="edit">Edit details</button>
+<div id="edit-box" hidden class="frow" style="margin-top:14px">
+<div class="f full"><label for="title">Title</label><input class="field-in" id="title"></div>
+<div class="f"><label for="authors">Authors</label><input class="field-in" id="authors"></div>
+<div class="f"><label for="journal">Journal and year</label><input class="field-in" id="journal"></div></div>
 
-<div class="fset"><h3><span class="badge">2</span>Materials</h3><p>For each one, paste a link or choose a file from your computer.</p>
-<div class="frow">
-<div class="f full"><label for="package">Replication package — data and code</label>
-<div class="seg" data-target="package" role="tablist"><button type="button" data-mode="link" class="on">Link</button><button type="button" data-mode="file">File</button></div>
-<div data-pane="package-link"><input class="field-in" id="package" data-label="Replication package" placeholder="DOI or link: Zenodo, Dataverse, OSF, GitHub, or a .zip" autocapitalize="off" spellcheck="false"></div>
-<div data-pane="package-file" hidden><label class="drop" for="package-file"><input type="file" id="package-file" accept=".zip,.gz,.tgz" hidden><span class="drop-t">Choose a .zip</span><span class="drop-s">or drop it here · up to 25 MB</span></label></div>
-<div class="detect" id="package-detect"></div>
-<div class="hint">Archives inside the package (.zip, .rar, .7z, .tar.gz) are unpacked automatically. Larger than 25 MB? Upload it free at <a href="https://zenodo.org/uploads/new">Zenodo</a> and paste the DOI.</div></div>
+<p class="eyebrow muted" style="font-size:14px;margin:30px 0 10px">What we found</p>
+<div class="mlist"><div id="m-data"></div><div id="m-paper"></div><div id="m-supp"></div></div>
 
-<div class="f full"><label for="paper">Paper PDF <span class="opt">— recommended</span></label>
-<div class="seg" data-target="paper" role="tablist"><button type="button" data-mode="link" class="on">Link</button><button type="button" data-mode="file">File</button></div>
-<div data-pane="paper-link"><input class="field-in" id="paper" placeholder="Found automatically if open access" autocapitalize="off" spellcheck="false"></div>
-<div data-pane="paper-file" hidden><label class="drop" for="paper-file"><input type="file" id="paper-file" accept=".pdf,application/pdf" hidden><span class="drop-t">Choose the PDF</span><span class="drop-s">or drop it here · up to 25 MB</span></label></div>
-<div class="detect" id="paper-detect"></div></div>
+<div class="f" style="margin-top:18px"><label for="link">Data and code link <span class="opt">— if it wasn't found, or a different one</span></label>
+<input class="field-in" id="link" placeholder="https://doi.org/10.5281/zenodo… · Dataverse · OSF · GitHub · Dryad · openICPSR" autocapitalize="off" spellcheck="false"></div>
 
-<div class="f full"><label>Supplementary materials <span class="opt">— optional, as many as needed</span></label>
-<div class="hint" style="margin-bottom:4px">Journals usually offer these as a download button. Download them, then choose the files here, or paste their links.</div>
-<div id="supp-list" class="items"></div>
-<div style="display:flex;gap:10px;flex-wrap:wrap">
-<label class="btn small secondary" for="supp-files" style="cursor:pointer">Add files<input type="file" id="supp-files" multiple accept=".pdf,.zip,.xlsx,.xls,.csv,.docx,.txt,.gz" hidden></label>
-<button class="btn small secondary" type="button" id="supp-addlink">Add a link</button></div>
-<div class="detect" id="supp-detect"></div></div>
-</div>
-<div class="note blue" style="margin-bottom:0"><b>About files.</b> Files are sent to a private store, used only for this audit and never published. Up to about 25 MB each. Zip other formats (.dta, .rar, .do, .R) first.</div>
-</div>
+<div id="drop" class="drop big" style="margin-top:18px">
+<div class="drop-t">Drop files or a whole folder here</div>
+<div class="drop-s">The paper PDF, the supplement, and the data and code. Loose files and folders are zipped for you. Kept private, up to 100 MB.</div>
+<div style="display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap">
+<label class="btn small secondary" style="cursor:pointer">Choose files<input type="file" id="pick-files" multiple hidden></label>
+<label class="btn small secondary" style="cursor:pointer">Choose a folder<input type="file" id="pick-folder" webkitdirectory directory multiple hidden></label></div></div>
+<div id="chips" class="items" style="margin-top:12px"></div>
 
-<div class="fset"><h3><span class="badge">3</span>Estimates to check <span class="small" style="font-weight:400">— optional</span></h3>
-<p>The key numbers exactly as printed, for example <span class="mono">-.042</span>, because the number of decimals sets the tolerance. Mark the headline result. If you leave this empty, estimates are extracted from the PDF during the audit and checked by the reviewer.</p>
-<div class="suggest" id="suggest">
-<div class="suggest-h"><div><b>Suggestions from the PDF</b><div class="small">Choose the paper or supplement as a file above and its tables are read here in your browser. Tick the estimates to check.</div></div>
-<button class="btn small" type="button" id="scan" disabled>Find estimates</button></div>
-<div class="small" id="sugg-status"></div>
-<div id="sugg-list"></div>
-<div id="sugg-actions" hidden style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center"><button class="btn small" type="button" id="sugg-add">Add selected</button><span class="small">Found automatically. Check each one against the paper.</span></div>
-</div>
-<div style="display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 6px"><button class="btn small secondary" type="button" id="pastebtn">Paste from a spreadsheet</button></div>
-<div id="pastebox" style="display:none;margin:10px 0 4px"><textarea class="field-in" id="paste" style="min-height:110px;font-family:var(--mono);font-size:13px" placeholder="Copy rows from Excel, Google Sheets or a CSV. One row per estimate, in this order:&#10;ID   Description   Coefficient   Std. error   N   Headline (yes/no)"></textarea>
-<button class="btn small" type="button" id="pasteadd" style="margin-top:8px">Add these rows</button></div>
-<div class="small" id="paste-msg" style="min-height:4px"></div>
-<div style="overflow-x:auto"><table class="claims"><thead><tr><th>ID</th><th>Where and what</th><th>Coefficient</th><th>Std. error</th><th>N</th><th>Headline</th><th></th></tr></thead><tbody id="claims-body"></tbody></table></div>
-<button class="btn small secondary" type="button" id="addrow" style="margin-top:8px">Add an estimate</button>
-</div>
+<details class="more"><summary>Choose which estimates to check <span class="opt">— optional</span></summary>
+<p class="small" style="margin:10px 0">Leave this alone and the estimates are read from the paper's tables during the audit. If you add the paper PDF above, its tables are listed here so you can pick the ones that matter.</p>
+<div class="small" id="sugg-status"></div><div id="sugg" style="margin-top:8px"></div>
+<label class="small" for="paste" style="display:block;margin-top:14px;font-weight:600">Or paste rows from a spreadsheet: ID, description, coefficient, standard error, N, headline (yes/no)</label>
+<textarea class="field-in" id="paste" style="min-height:90px;font-family:var(--mono);font-size:13px;margin-top:6px" placeholder="T1c3, Table 1 col 3: outcome on treatment, -.042, .011, 1200, yes"></textarea>
+</details>
+<details class="more"><summary>Notes for the auditor <span class="opt">— optional</span></summary>
+<textarea class="field-in" id="notes" style="margin-top:10px;min-height:80px" placeholder="For example: which script makes which table, or data that are restricted."></textarea>
+</details>
+<input type="text" id="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
 
-<div class="fset"><h3><span class="badge">4</span>Review and send</h3><p>Check the summary, then send.</p>
-<div class="f full" style="margin-bottom:18px"><label for="notes">Notes for the auditors <span class="opt">— optional</span></label><textarea class="field-in" id="notes" placeholder="For example: which script produces which table, or data that are restricted."></textarea></div>
-<div id="summary" style="margin-bottom:18px"></div>
-<input type="text" id="website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
-<label class="check"><input type="checkbox" id="c1"><span>The replication materials are publicly available and I may point to them.</span></label>
-<label class="check"><input type="checkbox" id="c2"><span>I understand the results are shown openly on this website.</span></label>
-<ul id="problems" class="small" style="color:var(--red);margin:14px 0 0;padding-left:20px"></ul>
-<div class="btns" style="margin-top:22px"><button class="btn" type="button" id="go">Send request</button><button class="btn secondary" type="button" onclick="document.getElementById('clear').click()">Start over</button></div>
+<label class="check" style="margin-top:18px"><input type="checkbox" id="mine"><span>I'm one of the paper's authors</span></label>
+<ul id="why" class="small" style="color:var(--red);margin:10px 0 0;padding-left:20px"></ul>
+<div class="btns" style="margin-top:18px"><button class="btn" type="button" id="go" style="font-size:19px;padding:14px 30px">Start the audit</button></div>
 <div id="send-box" hidden style="margin-top:18px"><div style="height:6px;background:var(--gray-soft);border-radius:99px;overflow:hidden"><div id="send-bar" style="height:100%;width:0;background:var(--blue);transition:width .3s"></div></div>
 <div class="small" id="send-label" style="margin-top:8px"></div></div>
 <p class="small" id="send-error" style="color:var(--red)"></p>
-<p class="tiny" style="margin-top:12px">No account needed. The audit starts automatically and you'll get a page to follow it. Your entries are saved in this browser until you send.</p>
-</div>
-</form></div></section>
+<p class="tiny" style="margin-top:14px">No account needed. Files are kept private and used only for this audit; results are shown publicly on this website. You'll get a page to follow the audit, which takes about 20 to 90 minutes.</p>
+</div></div></section>
 
 <section class="sec"><div class="wrap wide">
-<div class="center" style="margin-bottom:44px"><p class="eyebrow">What happens next</p><h2 class="h2">Four steps to a published report.</h2></div>
-<div class="steps">
-<div class="step card"><h3 style="margin:0 0 6px">Received</h3><p>Your request and files arrive, and you get a page to follow it.</p></div>
-<div class="step card"><h3 style="margin:0 0 6px">Audited</h3><p>The audit starts automatically: materials fetched and fingerprinted, code run, every number checked. Results appear on your page.</p></div>
-<div class="step card"><h3 style="margin:0 0 6px">Reviewed</h3><p>A reviewer checks the estimates, code and robustness checks and writes an assessment.</p></div>
-<div class="step card"><h3 style="margin:0 0 6px">Published</h3><p>The audit joins the registry with tables, charts and a PDF report.</p></div>
-</div></div></section>"""
-    return page("Submit a paper", body, 0, "submit.html", extra_js=('<script src="vendor/pdfjs/pdf.min.js" defer></script><script src="estimates.js" defer></script>'
-                      '<script src="submit.js" defer></script>'),
-                body_attrs=f' data-repo="{REPO}" data-api="{API}"')
+<div class="grid g3">
+<div class="card">{i1}<h3>Found for you.</h3><p>The paper's details come from Crossref, an open-access PDF from Unpaywall, and the replication package from the data repositories that link to the paper.</p></div>
+<div class="card">{i2}<h3>Run as published.</h3><p>R and Python code runs exactly as the authors shipped it. Stata code is translated. Every reported number is then looked for in the output.</p></div>
+<div class="card">{i3}<h3>Reviewed, then published.</h3><p>Results appear on your page straight away. After review they're published with tables, charts, suggestions and a PDF report.</p></div>
+</div></div></section>""".format(i1=icon("fetch"), i2=icon("check"), i3=icon("review"))
+    return page("Audit a paper", body, 0, "submit.html",
+                extra_js=('<script src="vendor/pdfjs/pdf.min.js" defer></script><script src="vendor/jszip/jszip.min.js" defer></script>'
+                          '<script src="estimates.js" defer></script><script src="submit.js" defer></script>'),
+                body_attrs=f' data-api="{API}"')
 
 
 def status_page():
