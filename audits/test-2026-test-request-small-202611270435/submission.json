@@ -1,0 +1,15 @@
+{
+  "slug": "test-2026-test-request-small-202611270435",
+  "issue": 3,
+  "issue_url": "https://github.com/sahiljangra12/replicaudit/issues/3",
+  "submitted": "2026-11-27",
+  "status": "could not fetch",
+  "title": "Test request: small R package",
+  "authors": "Test",
+  "journal_year": "Test 2026",
+  "doi": "10.1126/science.aaa0001",
+  "field": "Other",
+  "relationship": "Not stated",
+  "notes": "Automated timing test.",
+  "error": "github.com/sahiljangra12/replicaudit could not be downloaded. It may be private, renamed or deleted. Please use a public link or upload the files. (git:                           a URI for downloading bundles before fetching from origin remote)"
+}
