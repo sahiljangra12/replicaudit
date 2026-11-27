@@ -1,0 +1,33 @@
+{
+  "slug": "test-2026-test-request-package",
+  "issue": 1,
+  "issue_url": "https://github.com/sahiljangra12/replicaudit/issues/1",
+  "submitted": "2026-11-27",
+  "status": "not enough material",
+  "title": "Test request: package without data",
+  "authors": "Test",
+  "journal_year": "Test 2026",
+  "doi": "10.1126/science.aaa0001",
+  "field": "Other",
+  "relationship": "Not stated",
+  "notes": "Automated test of the material check.",
+  "package": {
+    "source": "https://github.com/octocat/Hello-World",
+    "resolved_url": "https://github.com/octocat/Hello-World",
+    "kind": "github",
+    "repo": "octocat/Hello-World",
+    "ref": "default",
+    "commit": "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
+    "unpacked": [],
+    "manifest": [
+      {
+        "path": "README",
+        "bytes": 13,
+        "sha256": "03ba204e50d126e4674c005e04d82e84c21366780af1f43bd54a37816b6ab340"
+      }
+    ],
+    "package_sha256": "43728dcdf09212c2f0051c9e9b90858a9b444f03e63b83fcf0accadcf461fd4d"
+  },
+  "supplement": [],
+  "error": "No data or analysis code was found in the replication package (it contained only (no extension) files). Please send the package with the data files (.csv, .dta, .rds, .xlsx, ...) and the scripts."
+}
