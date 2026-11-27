@@ -18,7 +18,7 @@ body:
     id: authors
     attributes:
       label: Authors
-      placeholder: "Zhang, H.; Li, X.; ..."
+      placeholder: "Surname, Initial; Surname, Initial; ..."
     validations:
       required: true
   - type: input
@@ -32,7 +32,7 @@ body:
     id: doi
     attributes:
       label: Paper DOI
-      placeholder: "10.1126/science.aee0747"
+      placeholder: "10.xxxx/xxxxx"
     validations:
       required: true
   - type: textarea
@@ -61,7 +61,7 @@ body:
       render: csv
       placeholder: |
         id,description,b,se,n,main
-        T1c3,"Table 1 col 3: outcome on treatment, all controls",-.0125,.0037,46371,true
+        T1c3,"Table 1 col 3: outcome on treatment, all controls",-.042,.011,1200,true
   - type: input
     id: field
     attributes:

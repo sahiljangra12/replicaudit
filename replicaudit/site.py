@@ -199,6 +199,14 @@ def index_page(audits):
                                 'Audits appear here once they have been reviewed and the authors have had a chance to respond.<br><br>'
                                 '<a class="btn small" href="submit.html">Submit the first paper</a></div>')
     pct = f"{n_exact / n_claims:.0%}" if n_claims else "—"
+    stats = f"""<section class="sec alt tight"><div class="wrap wide"><div class="grid g4">
+<div class="card stat reveal"><div class="num">{len(audits)}</div><div class="lbl">papers audited</div></div>
+<div class="card stat reveal"><div class="num">{n_claims}</div><div class="lbl">reported estimates checked</div></div>
+<div class="card stat reveal"><div class="num green">{pct}</div><div class="lbl">reproduced to the precision the paper reports</div></div>
+<div class="card stat reveal"><div class="num{' red' if n_fragile else ''}">{n_fragile}<span class="small" style="font-size:20px;font-weight:600"> / {n_rob}</span></div><div class="lbl">headline results that failed robustness checks</div></div>
+</div></div></section>
+
+""" if audits else ""
     body = f"""
 <section class="sec center" style="padding-top:110px"><div class="wrap">
 <p class="eyebrow reveal">Open replication registry</p>
@@ -207,14 +215,7 @@ def index_page(audits):
 <div class="btns reveal"><a class="btn" href="submit.html">Submit a paper</a><a class="btn secondary" href="methods.html">Read the protocol</a></div>
 </div></section>
 
-<section class="sec alt tight"><div class="wrap wide"><div class="grid g4">
-<div class="card stat reveal"><div class="num">{len(audits)}</div><div class="lbl">papers audited</div></div>
-<div class="card stat reveal"><div class="num">{n_claims}</div><div class="lbl">reported estimates checked</div></div>
-<div class="card stat reveal"><div class="num green">{pct}</div><div class="lbl">reproduced to the precision the paper reports</div></div>
-<div class="card stat reveal"><div class="num{' red' if n_fragile else ''}">{n_fragile}<span class="small" style="font-size:20px;font-weight:600"> / {n_rob}</span></div><div class="lbl">headline results that failed robustness checks</div></div>
-</div></div></section>
-
-<section class="sec"><div class="wrap wide">
+{stats}<section class="sec"><div class="wrap wide">
 <div class="head-row"><div><p class="eyebrow">Registry</p><h2 class="h2">Every audit, in the open.</h2></div>
 <a class="link-arrow" href="methods.html#verdicts">How verdicts are defined</a></div>
 <div class="search"><input class="field-in" id="q" type="search" placeholder="Search by title, author, journal or DOI" aria-label="Search the registry">
@@ -451,17 +452,18 @@ def submit_page():
 <section class="sec center" style="padding-bottom:56px"><div class="wrap">
 <p class="eyebrow">Submit a paper</p>
 <h1 class="h1">Request an audit.</h1>
-<p class="lead">Tell us about the paper and where its data and code live. It takes about three minutes. You’ll confirm and send the request from your GitHub account, so it stays on the public record.</p>
+<p class="lead">Paste a DOI and a link to the data and code. Most of the rest fills itself in. You’ll send the request from your GitHub account, so it stays on the public record.</p>
 </div></section>
 <section class="sec alt" style="padding-top:56px"><div class="wrap">
+<div class="note" id="restored" style="display:none;margin-top:0;display:none">Your unsent request was restored from this browser. <a href="#" id="clear" onclick="return false">Clear form</a></div>
 <form class="form" id="form" onsubmit="return false" novalidate>
 
-<div class="fset"><h3><span class="badge">1</span>The paper</h3><p>Exactly as published.</p>
+<div class="fset"><h3><span class="badge">1</span>The paper</h3><p>Start with the DOI. The title, authors and journal fill in automatically, and you can edit them.</p>
 <div class="frow">
-<div class="f full"><label for="title">Title</label><input class="field-in" id="title" data-label="Title" placeholder="China's solar expansion policy reduces bird diversity"></div>
-<div class="f full"><label for="authors">Authors</label><input class="field-in" id="authors" data-label="Authors" placeholder="Zhang, H.; Li, X.; …"></div>
-<div class="f"><label for="journal">Journal and year</label><input class="field-in" id="journal" data-label="Journal and year" placeholder="Science 393:831, 2026"></div>
-<div class="f"><label for="doi">DOI</label><input class="field-in" id="doi" data-label="DOI" placeholder="10.1126/science.aee0747" autocapitalize="off" spellcheck="false"><div class="detect" id="doi-detect"></div></div>
+<div class="f full"><label for="doi">DOI</label><input class="field-in" id="doi" data-label="DOI" placeholder="10.xxxx/xxxxx, or paste a doi.org link" autocapitalize="off" spellcheck="false" autofocus><div class="detect" id="doi-detect"></div></div>
+<div class="f full"><label for="title">Title</label><input class="field-in" id="title" data-label="Title" placeholder="Filled in from the DOI"></div>
+<div class="f"><label for="authors">Authors</label><input class="field-in" id="authors" data-label="Authors" placeholder="Filled in from the DOI"></div>
+<div class="f"><label for="journal">Journal and year</label><input class="field-in" id="journal" data-label="Journal and year" placeholder="Filled in from the DOI"></div>
 <div class="f"><label for="field">Field</label><select class="field-in" id="field" data-label="Field"><option value="">Choose…</option>{fopts}</select></div>
 <div class="f"><label for="relationship">Your relationship to the paper</label><select class="field-in" id="relationship" data-label="Relationship"><option value="">Choose…</option><option>Not an author</option><option>I am an author</option><option>Author of a related or competing paper</option></select></div>
 </div></div>
@@ -471,14 +473,18 @@ def submit_page():
 <div class="f full"><label for="package">Replication package — data and code</label><input class="field-in" id="package" data-label="Replication package" placeholder="https://doi.org/10.5281/zenodo.1234567" autocapitalize="off" spellcheck="false">
 <div class="detect" id="package-detect"></div>
 <div class="hint">Zenodo, Harvard Dataverse (or any Dataverse), OSF, a GitHub repository, or a direct link to a .zip. Archives inside it (.zip, .rar, .7z, .tar.gz) are unpacked automatically.</div></div>
-<div class="f"><label for="paper">Paper PDF <span class="opt">— recommended</span></label><input class="field-in" id="paper" placeholder="Open-access link to the PDF" autocapitalize="off" spellcheck="false"><div class="hint">Used to find the reported estimates.</div></div>
+<div class="f"><label for="paper">Paper PDF <span class="opt">— recommended</span></label><input class="field-in" id="paper" placeholder="Found automatically if open access" autocapitalize="off" spellcheck="false"><div class="detect" id="paper-detect"></div><div class="hint">Used to find the reported estimates.</div></div>
 <div class="f"><label for="supplement">Supplementary materials <span class="opt">— optional</span></label><input class="field-in" id="supplement" placeholder="Link to the SM PDF" autocapitalize="off" spellcheck="false"><div class="hint">Needed if the estimates to check are in the supplement.</div></div>
 </div>
 <div class="note blue" style="margin-bottom:0"><b>Only have files, not links?</b> Upload them free at <a href="https://zenodo.org/uploads/new">Zenodo</a> to get a permanent DOI, then paste it here. Or drag files of up to 25 MB into the next page on GitHub.</div>
 </div>
 
 <div class="fset"><h3><span class="badge">3</span>Estimates to check <span class="small" style="font-weight:400">— optional</span></h3>
-<p>List the key numbers exactly as printed, for example <span class="mono">-.0125</span>, because the number of decimals sets the tolerance. Mark the headline result. If you leave this empty, estimates are extracted from the PDF and checked by the reviewer.</p>
+<p>List the key numbers exactly as printed, for example <span class="mono">-.042</span>, because the number of decimals sets the tolerance. Mark the headline result. If you leave this empty, estimates are extracted from the PDF and checked by the reviewer.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px"><button class="btn small secondary" type="button" id="pastebtn">Paste from a spreadsheet</button></div>
+<div id="pastebox" style="display:none;margin:10px 0 4px"><textarea class="field-in" id="paste" style="min-height:110px;font-family:var(--mono);font-size:13px" placeholder="Copy rows from Excel, Google Sheets or a CSV. One row per estimate, in this order:&#10;ID   Description   Coefficient   Std. error   N   Headline (yes/no)"></textarea>
+<button class="btn small" type="button" id="pasteadd" style="margin-top:8px">Add these rows</button></div>
+<div class="small" id="paste-msg" style="min-height:4px"></div>
 <div style="overflow-x:auto"><table class="claims"><thead><tr><th>ID</th><th>Where and what</th><th>Coefficient</th><th>Std. error</th><th>N</th><th>Headline</th><th></th></tr></thead><tbody id="claims-body"></tbody></table></div>
 <button class="btn small secondary" type="button" id="addrow" style="margin-top:8px">Add an estimate</button>
 </div>
@@ -490,8 +496,8 @@ def submit_page():
 <label class="check"><input type="checkbox" id="c2"><span>I understand the audit is published openly after review, and the authors are invited to respond first.</span></label>
 <ul id="problems" class="small" style="color:var(--red);margin:14px 0 0;padding-left:20px"></ul>
 <p id="toolong" class="small" style="display:none;color:var(--amber)">This request is very long. If GitHub cuts it off, paste your estimates on the next page.</p>
-<div class="btns" style="margin-top:22px"><button class="btn" type="button" id="go">Continue on GitHub</button></div>
-<p class="tiny" style="margin-top:12px">Opens a pre-filled request in a new tab. You'll need a free GitHub account. Nothing is sent until you press “Create” there.</p>
+<div class="btns" style="margin-top:22px"><button class="btn" type="button" id="go">Continue on GitHub</button><button class="btn secondary" type="button" onclick="document.getElementById('clear').click()">Start over</button></div>
+<p class="tiny" style="margin-top:12px">Opens a pre-filled request in a new tab. You'll need a free GitHub account. Nothing is sent until you press “Create” there. Your entries are saved in this browser until then.</p>
 </div>
 </form></div></section>
 

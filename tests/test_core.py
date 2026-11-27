@@ -3,17 +3,17 @@ from replicaudit.sandbox import extract_code
 
 
 def test_exact_and_rounding():
-    assert verdict("-.0125", ".0037", -0.012528, 0.003655, 46371, 46371)["verdict"] == "exact"
-    assert verdict("-.0125", ".0037", -0.012528, 0.003655, 46371, 46528)["verdict"] == "close"  # N differs
-    assert verdict("-.0125", ".0037", -0.0128, 0.0037)["verdict"] == "close"
-    assert verdict("-.0125", ".0037", -0.020, 0.0037)["verdict"] == "same_sign"
-    assert verdict("-.0125", ".0037", 0.003, 0.003)["verdict"] == "different"
-    assert verdict("-.0125", ".0037", None, None)["verdict"] == "failed"
+    assert verdict("-.042", ".011", -0.04213, 0.01104, 1200, 1200)["verdict"] == "exact"
+    assert verdict("-.042", ".011", -0.04213, 0.01104, 1200, 1250)["verdict"] == "close"  # N differs
+    assert verdict("-.042", ".011", -0.0435, 0.011)["verdict"] == "close"
+    assert verdict("-.042", ".011", -0.090, 0.011)["verdict"] == "same_sign"
+    assert verdict("-.042", ".011", 0.010, 0.009)["verdict"] == "different"
+    assert verdict("-.042", ".011", None, None)["verdict"] == "failed"
 
 
 def test_hardcode_guard():
-    lits = target_literals("-.0125")
-    assert "-0.0125" in lits and "-.0125" in lits
+    lits = target_literals("-.042")
+    assert "-0.042" in lits and "-.042" in lits
     assert target_literals("0.1") == []  # too short to police
 
 
@@ -29,15 +29,15 @@ def test_robustness_summary():
 
 def test_issue_form_parsing():
     from replicaudit.intake import claims_from_csv_text, first_link, parse_issue_form, slugify
-    body = ("### Paper title\n\nA study of birds\n\n### Authors\n\nZhang, H.; Li, X.\n\n"
+    body = ("### Paper title\n\nA study of wetlands\n\n### Authors\n\nRivera, A.; Okafor, B.\n\n"
             "### Journal and year\n\nScience 2026\n\n### Paper DOI\n\n10.1/abc\n\n"
             "### Replication package\n\nsee [pkg.zip](https://github.com/user-attachments/files/1/pkg.zip)\n\n"
             "### Supplementary materials\n\n_No response_\n")
     s = parse_issue_form(body)
-    assert s["title"] == "A study of birds" and s["supplement"] is None
+    assert s["title"] == "A study of wetlands" and s["supplement"] is None
     assert first_link(s["package"]) == "https://github.com/user-attachments/files/1/pkg.zip"
     assert first_link("10.7910/DVN/ABC") == "10.7910/DVN/ABC"
-    assert slugify(s) == "zhang-2026-study-birds"
+    assert slugify(s) == "rivera-2026-study-wetlands"
 
 
 def test_claims_csv(tmp_path):

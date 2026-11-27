@@ -45,7 +45,6 @@ audits/<slug>/        one folder per audit: submission.json, audit.json, results
                       review.md (reviewer), author_response.md (authors)
 site_src/             website stylesheet and script
 .github/              submission form; workflows for audits, the website and tests
-examples/solar_birds/ pilot audit inputs (claims + saved model answers)
 ```
 
 Authors' data and papers are **never committed**; only checksums, our scripts and our results are.
@@ -83,9 +82,9 @@ python -m replicaudit run --package path/to/package --paper paper.pdf --out runs
 python -m replicaudit run --backend openai --model qwen2.5-coder:32b --base-url http://localhost:11434/v1 \
     --package path/to/package --claims claims.csv --out runs/mypaper
 
-# replay a saved run exactly (no model)
-python -m replicaudit run --backend replay --fixtures examples/solar_birds/fixtures \
-    --package path/to/authors/package --claims examples/solar_birds/claims.csv --out runs/solar
+# replay a published audit exactly (no model): its saved answers are in audits/<slug>/llm_log
+python -m replicaudit run --backend replay --fixtures audits/<slug>/llm_log \
+    --package path/to/package --claims audits/<slug>/claims_submitted.csv --out runs/replay
 
 # the website, including drafts
 python -m replicaudit site --out _site --include-drafts
@@ -109,10 +108,6 @@ A headline result is **fragile** when fewer than 75% of robustness variants keep
 - API keys and tokens are removed from every script's environment. The audit job has read-only repository access; a separate job opens the pull request.
 - Issue text is passed to scripts through environment variables, never pasted into shell commands.
 - Nothing is published without human review and an invitation to the authors to reply.
-
-## Pilot
-
-`audits/zhang-2026-solar-expansion-policy` (draft): Zhang et al. (2026), *Science* 393:831. All 9 checked estimates reproduce exactly in Python from the authors' Stata package. The headline estimate flips sign when observer effort is controlled for, matching two published comments. In this pilot, the model answers were written by Claude in a chat session and replayed; no API calls were made.
 
 ## Related work
 
