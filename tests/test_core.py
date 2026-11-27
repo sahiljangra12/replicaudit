@@ -100,3 +100,21 @@ def test_authors_code_time_limit(tmp_path):
     res = run_package(pkg, tmp_path / "out", timeout=12)
     assert res.get("time_limit_reached")
     assert any(r["exit"] in ("timeout", "skipped (time limit)") for r in res["ran"])
+
+
+def test_github_clone_command_with_branch(monkeypatch, tmp_path):
+    import subprocess
+    from replicaudit import fetch
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        if cmd[:2] == ["git", "clone"]:
+            seen["cmd"] = cmd
+            (tmp_path / "package" / "_gh" / "sub" / ".keep").parent.mkdir(parents=True)
+            (tmp_path / "package" / "_gh" / ".git").mkdir()
+            (tmp_path / "package" / "_gh" / "sub" / "a.R").write_text("1")
+        return subprocess.CompletedProcess(cmd, 0, "abc", "")
+    monkeypatch.setattr(fetch.subprocess, "run", fake_run)
+    fetch.fetch_package("https://github.com/o/r/tree/dev/sub", tmp_path / "package")
+    assert seen["cmd"][:6] == ["git", "clone", "--branch", "dev", "--depth", "1"]
+    assert (tmp_path / "package" / "a.R").exists()

@@ -201,7 +201,7 @@ def fetch_package(source: str, out: Path) -> dict:
         sub = "/".join(parts[4:]) if ref else ""  # .../tree/<branch>/<folder>: use only that folder
         cmd = ["git", "clone", "--depth", "1", f"https://github.com/{owner}/{repo}.git", str(out / "_gh")]
         if ref:
-            cmd[3:3] = ["--branch", ref]
+            cmd[2:2] = ["--branch", ref]
         try:
             subprocess.run(cmd, check=True, capture_output=True, timeout=240,
                            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
