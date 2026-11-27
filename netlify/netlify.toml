@@ -1,0 +1,10 @@
+# Netlify hosts only the small intake API for the website; the website itself is on GitHub Pages.
+# Everything Netlify needs lives in netlify/, so it ignores the Python files at the top of the repo.
+[build]
+  base = "netlify"
+  publish = "public"
+  command = "echo intake API ready"
+
+[functions]
+  directory = "functions"
+  node_bundler = "esbuild"

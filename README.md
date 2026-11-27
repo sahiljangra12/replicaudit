@@ -99,7 +99,7 @@ replicaudit/   fetch.py (DOI/Zenodo/Dataverse/OSF/GitHub/zip/uploads) · intake.
                suggest.py (suggestions) · figures.py · latex.py (PDF report) · prompts.py · report.py · site.py · cli.py
 latex/         style.tex — the report's LaTeX style
 site_src/      website styles and scripts (form, PDF estimate finder, status page) + bundled pdf.js
-netlify/       intake function (website → stored files + request queue)
+netlify/       intake function (Netlify builds only this folder) (website → stored files + request queue)
 tools/         server-side PDF table reader (same code as the website)
 audits/        one folder per audit
 .github/       workflows (audit, website, tests) and the request form
