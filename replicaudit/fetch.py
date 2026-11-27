@@ -51,6 +51,38 @@ def _download(url: str, dest: Path) -> Path:
 UPLOAD_RE = re.compile(r"upload://([A-Za-z0-9_-]+)/([^\s)]+)")
 
 
+DEFAULT_UPLOADS_REPO = "sahiljangra12/replicaudit-uploads"
+
+
+def delete_uploads(rid: str) -> int:
+    """Remove a request's uploaded parts from the uploads repository once they have been fetched,
+    so nothing stays there (important when that repository is public). Returns files deleted."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", rid or ""):
+        return 0
+    repo = os.environ.get("UPLOADS_REPO") or DEFAULT_UPLOADS_REPO
+    token = os.environ.get("UPLOADS_TOKEN")
+    if not token:
+        return 0
+    hdr = {**UA, "Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+    try:
+        with urllib.request.urlopen(urllib.request.Request(
+                f"https://api.github.com/repos/{repo}/contents/{rid}", headers=hdr), timeout=60) as r:
+            listing = json.loads(r.read().decode())
+    except Exception:
+        return 0
+    n = 0
+    for e in listing:
+        body = json.dumps({"message": f"remove fetched upload {rid}", "sha": e["sha"]}).encode()
+        req = urllib.request.Request(e["url"].split("?")[0], data=body, method="DELETE",
+                                     headers={**hdr, "Content-Type": "application/json"})
+        try:
+            urllib.request.urlopen(req, timeout=60).close()
+            n += 1
+        except Exception:
+            pass
+    return n
+
+
 def fetch_upload(ref: str, dest_dir: Path) -> Path:
     """Files sent through the website are stored (in parts of up to 4 MB) in a private repository.
     ref looks like upload://<request id>/<file name>. Needs UPLOADS_REPO and UPLOADS_TOKEN."""
@@ -58,9 +90,10 @@ def fetch_upload(ref: str, dest_dir: Path) -> Path:
     if not m:
         raise FetchError(f"bad upload reference: {ref}")
     rid, name = m.group(1), urllib.parse.unquote(m.group(2))
-    repo, token = os.environ.get("UPLOADS_REPO"), os.environ.get("UPLOADS_TOKEN")
-    if not repo or not token:
-        raise FetchError("UPLOADS_REPO / UPLOADS_TOKEN are not configured, so uploaded files cannot be read")
+    repo = os.environ.get("UPLOADS_REPO") or DEFAULT_UPLOADS_REPO
+    token = os.environ.get("UPLOADS_TOKEN")
+    if not token:
+        raise FetchError("UPLOADS_TOKEN is not configured, so uploaded files cannot be read")
     api = f"https://api.github.com/repos/{repo}/contents/{rid}"
     hdr = {**UA, "Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
     with urllib.request.urlopen(urllib.request.Request(api, headers=hdr), timeout=60) as r:

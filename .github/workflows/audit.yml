@@ -67,7 +67,7 @@ jobs:
       - name: Step 1 — fetch the materials
         id: fetch
         env:
-          UPLOADS_REPO: ${{ vars.UPLOADS_REPO }}
+          UPLOADS_REPO: ${{ vars.UPLOADS_REPO || 'sahiljangra12/replicaudit-uploads' }}
           UPLOADS_TOKEN: ${{ secrets.UPLOADS_TOKEN }}
         run: |
           python -m replicaudit intake --step fetch --issue-body "$RUNNER_TEMP/issue.md" \

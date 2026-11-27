@@ -27,13 +27,13 @@ Website (GitHub Pages)  ──►  intake function (Netlify, free)  ──►  r
 
 ## Maintainer setup (once)
 
-1. **Private uploads repository.** Create an empty **private** repo `replicaudit-uploads`. Files sent through the website go there and are never published.
+1. **Uploads repository** `sahiljangra12/replicaudit-uploads` (already created). Files sent through the website wait there until the audit downloads them, then each request's files are deleted automatically. Keep it **private**: in a public repository, deleted files still stay readable in the git history.
 2. **One access token.** GitHub → Settings → Developer settings → Fine-grained tokens → Generate. Repository access: `replicaudit` and `replicaudit-uploads`. Permissions: **Issues: Read and write** and **Contents: Read and write**. Copy the token.
 3. **Netlify** (project `replicaudit-intake`):
    * Project configuration → Environment variables → add `GH_INTAKE_TOKEN` = the token (scope: Functions).
    * Project configuration → Build & deploy → **Link repository** → GitHub → `sahiljangra12/replicaudit` (branch `main`). Every push then deploys the function.
 4. **GitHub repo `replicaudit` → Settings:**
-   * Secrets and variables → Actions → **Secret** `UPLOADS_TOKEN` = the same token; **Variable** `UPLOADS_REPO` = `sahiljangra12/replicaudit-uploads`.
+   * Secrets and variables → Actions → **Secret** `UPLOADS_TOKEN` = the same token; (the variable `UPLOADS_REPO` is optional; it defaults to `sahiljangra12/replicaudit-uploads`).
    * Pages → Source → **GitHub Actions**.
 
 Optional: secret `ANTHROPIC_API_KEY` to use Claude instead of the free model; variable `OLLAMA_MODEL` to choose a different free model.
