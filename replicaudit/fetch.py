@@ -208,9 +208,12 @@ def fetch_package(source: str, out: Path) -> dict:
         except subprocess.TimeoutExpired:
             raise FetchError(f"Downloading github.com/{owner}/{repo} took longer than 4 minutes. "
                              "Please send a smaller package or a Zenodo link.")
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError as e:
+            err = (e.stderr or b"").decode(errors="replace").strip().splitlines()
+            print("git clone failed:", " | ".join(err[-5:]))
             raise FetchError(f"github.com/{owner}/{repo} could not be downloaded. It may be private, "
-                             "renamed or deleted. Please use a public link or upload the files.")
+                             "renamed or deleted. Please use a public link or upload the files. "
+                             f"(git: {err[-1][:160] if err else 'no message'})")
         commit = subprocess.run(["git", "-C", str(out / "_gh"), "rev-parse", "HEAD"],
                                 capture_output=True, text=True).stdout.strip()
         shutil.rmtree(out / "_gh" / ".git")
