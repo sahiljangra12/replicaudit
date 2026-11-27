@@ -280,3 +280,15 @@ details.more .opt{color:var(--ink-3);font-weight:400}
 .item select{font:13px var(--font);border:1px solid var(--hair-2);border-radius:7px;padding:3px 6px;background:var(--card);color:var(--ink)}
 @media (max-width:680px){.qbox{flex-direction:column;border-radius:18px}.qbox .btn{justify-content:center}.cands{margin-left:0}}
 [hidden]{display:none!important}
+
+/* progress of one audit (status page) */
+.pbar{margin-bottom:20px;padding:22px 24px}
+.pbar-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:12px;font-size:15px}
+.pbar-top b{font-size:28px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.pbar-track{height:10px;background:var(--gray-soft);border-radius:99px;overflow:hidden}
+#p-fill{height:100%;width:0;background:var(--blue);border-radius:99px;transition:width .8s ease}
+.pbar.ok #p-fill{background:var(--green,#1d8a3a)}
+.pbar.bad #p-fill{background:var(--red)}
+.pbar.live #p-fill{background-image:linear-gradient(90deg,rgba(255,255,255,0) 0,rgba(255,255,255,.35) 50%,rgba(255,255,255,0) 100%);background-size:200px 100%;background-repeat:no-repeat;animation:pshine 1.8s linear infinite}
+@keyframes pshine{from{background-position:-200px 0}to{background-position:calc(100% + 200px) 0}}
+@media (prefers-reduced-motion:reduce){.pbar.live #p-fill{animation:none}}

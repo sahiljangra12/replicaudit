@@ -597,6 +597,9 @@ def status_page():
 <div id="ask" hidden class="card" style="max-width:520px;margin:0 auto"><h3 class="h3" style="margin-bottom:12px">Enter your request number</h3>
 <div style="display:flex;gap:10px"><input class="field-in" id="rnum" placeholder="Request number or code"><button class="btn" id="go-track" type="button">Track</button></div></div>
 <div id="track" hidden>
+<div class="card pbar" id="pbar"><div class="pbar-top"><span id="p-label">Checking the status…</span><b id="p-pct">0%</b></div>
+<div class="pbar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="p-track"><div id="p-fill"></div></div>
+<p class="tiny" id="p-note" style="margin:10px 0 0"></p></div>
 <div class="grid g3 steps3">
 <div class="card st" id="s1"><div class="st-n">1</div><h3>Received</h3><p class="st-s"></p></div>
 <div class="card st" id="s2"><div class="st-n">2</div><h3>Running</h3><p class="st-s"></p></div>
