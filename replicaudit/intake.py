@@ -116,10 +116,13 @@ def check_material(files: list[str], has_paper: bool, has_claims: bool) -> tuple
     if not files:
         problems.append("The replication package was empty: no files could be downloaded from the link or upload.")
     elif not data and not code:
-        kinds = sorted({Path(f).suffix.lower() or "(no extension)" for f in files})[:8]
-        problems.append("No data or analysis code was found in the replication package (it contained only "
-                        + ", ".join(kinds) + " files). Please send the package with the data files "
-                        "(.csv, .dta, .rds, .xlsx, ...) and the scripts.")
+        if len(files) <= 6:
+            found = "it contained only " + ", ".join(Path(f).name for f in files)
+        else:
+            kinds = sorted({Path(f).suffix.lower() or "files without an extension" for f in files})[:8]
+            found = f"it contained {len(files)} files, all of type " + ", ".join(kinds)
+        problems.append("No data or analysis code was found in the replication package (" + found + "). "
+                        "Please send the package with the data files (.csv, .dta, .rds, .xlsx, ...) and the scripts.")
     elif not data:
         problems.append("The replication package has code but no data files, so nothing can be recomputed. "
                         "If the data are held elsewhere (for example a restricted archive), they cannot be audited here.")
@@ -205,9 +208,9 @@ def fetch_materials(body: str, root: Path, materials: Path, issue: int | None = 
         if problems:
             raise NotEnoughMaterial(" ".join(problems))
         state["ok"] = True
-    except FetchError as e:
+    except Exception as e:  # any download problem becomes a clear message on the request page
         record["status"] = "not enough material" if isinstance(e, NotEnoughMaterial) else "could not fetch"
-        record["error"] = str(e)
+        record["error"] = str(e) if isinstance(e, FetchError) else f"The materials could not be downloaded ({type(e).__name__}: {str(e)[:200]})."
         state["ok"] = False
     # Uploaded files are now on the runner: delete them from the intake store.
     from .fetch import UPLOAD_RE, delete_uploads

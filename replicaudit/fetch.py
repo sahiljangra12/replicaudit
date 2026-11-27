@@ -198,17 +198,29 @@ def fetch_package(source: str, out: Path) -> dict:
         parts = urllib.parse.urlparse(url).path.strip("/").split("/")
         owner, repo = parts[0], parts[1].removesuffix(".git")
         ref = parts[3] if len(parts) > 3 and parts[2] == "tree" else None
+        sub = "/".join(parts[4:]) if ref else ""  # .../tree/<branch>/<folder>: use only that folder
         cmd = ["git", "clone", "--depth", "1", f"https://github.com/{owner}/{repo}.git", str(out / "_gh")]
         if ref:
             cmd[3:3] = ["--branch", ref]
-        subprocess.run(cmd, check=True, capture_output=True)
+        try:
+            subprocess.run(cmd, check=True, capture_output=True, timeout=240,
+                           env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
+        except subprocess.TimeoutExpired:
+            raise FetchError(f"Downloading github.com/{owner}/{repo} took longer than 4 minutes. "
+                             "Please send a smaller package or a Zenodo link.")
+        except subprocess.CalledProcessError:
+            raise FetchError(f"github.com/{owner}/{repo} could not be downloaded. It may be private, "
+                             "renamed or deleted. Please use a public link or upload the files.")
         commit = subprocess.run(["git", "-C", str(out / "_gh"), "rev-parse", "HEAD"],
                                 capture_output=True, text=True).stdout.strip()
         shutil.rmtree(out / "_gh" / ".git")
-        for p in (out / "_gh").iterdir():
+        src = out / "_gh" / sub if sub else out / "_gh"
+        if not src.is_dir():
+            raise FetchError(f"The folder {sub} was not found in github.com/{owner}/{repo}.")
+        for p in src.iterdir():
             shutil.move(str(p), out / p.name)
-        (out / "_gh").rmdir()
-        info.update(kind="github", repo=f"{owner}/{repo}", ref=ref or "default", commit=commit)
+        shutil.rmtree(out / "_gh", ignore_errors=True)
+        info.update(kind="github", repo=f"{owner}/{repo}", ref=ref or "default", commit=commit, folder=sub or None)
     elif "openicpsr" in host or "icpsr.umich.edu" in host:
         raise FetchError("openICPSR needs a login and cannot be downloaded automatically. "
                          "Please attach the package as a .zip to the request instead.")
