@@ -264,13 +264,13 @@
         title: $("title").value.trim(), authors: $("authors").value.trim(), journal: $("journal").value.trim(), doi: st.doi,
         field: (st.meta || {}).field || "", relationship: $("mine").checked ? "I am an author" : "Not stated",
         package: refs.pkg || st.link.trim() || st.pick, paper: refs.paper || st.oaPdf || "",
-        supplement: refs.supp.join("\n"), claims: claimsCsv(), notes: $("notes").value.trim(), website: $("website").value
+        supplement: refs.supp.join("\n"), claims: claimsCsv(), notes: $("notes").value.trim(), website: $("website").value, rid: id
       };
       return fetch(API + "/api/submit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
         .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "could not send"); return j; }); });
     }).then(function (j) {
-      try { localStorage.removeItem("ra-draft2"); localStorage.setItem("ra-last-request", String(j.number)); } catch (e) {}
-      location.href = "status.html?r=" + j.number;
+      try { localStorage.removeItem("ra-draft2"); localStorage.setItem("ra-last-request", String(j.id)); } catch (e) {}
+      location.href = "status.html?q=" + j.id;
     }).catch(function (e) {
       st.busy = false; render();
       $("send-error").textContent = /load failed|failed to fetch|networkerror/i.test(e.message)

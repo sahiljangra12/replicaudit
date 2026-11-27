@@ -1,0 +1,45 @@
+name: Collect requests
+
+# Every few minutes, picks up requests sent through the website and starts an audit for each.
+# No secrets: the intake API recognises this workflow by GitHub's own OIDC identity token.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  issues: write
+  actions: write
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      API: https://replicaudit-intake.netlify.app
+    steps:
+      - name: Pick up new requests
+        run: |
+          set -euo pipefail
+          tok=$(curl -fsS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+                "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=replicaudit-intake" | jq -r .value)
+          curl -fsS -H "Authorization: Bearer $tok" "$API/api/pending" > pending.json
+          n=$(jq length pending.json); echo "$n new request(s)"
+          for i in $(seq 0 $((n - 1))); do
+            id=$(jq -r ".[$i].id" pending.json)
+            jq -r ".[$i].title" pending.json > title.txt
+            jq -r ".[$i].body" pending.json > body.md
+            url=$(gh issue create -R "$GITHUB_REPOSITORY" --title "$(cat title.txt)" --body-file body.md --label audit-request)
+            num=${url##*/}
+            curl -fsS -X POST -H "Authorization: Bearer $tok" -H "Content-Type: application/json" \
+                 -d "{\"id\":\"$id\",\"issue\":$num}" "$API/api/claim"
+            gh workflow run audit.yml -R "$GITHUB_REPOSITORY" -f issue="$num"
+            echo "request $id -> #$num"
+          done

@@ -8,7 +8,7 @@ Someone submits a paper on the website: its DOI, the replication package, the pa
 ## How it works
 
 ```
-Website (GitHub Pages)  ──►  intake function (Netlify, free)  ──►  request recorded + files kept private
+Website (GitHub Pages)  ──►  intake function (Netlify, free)  ──►  request and files stored (Netlify Blobs)
         ▲                                                              │
         │                                                              ▼
  status page shows results  ◄──  results saved  ◄──  GitHub Actions (free on public repos)
@@ -27,14 +27,12 @@ Website (GitHub Pages)  ──►  intake function (Netlify, free)  ──►  r
 
 ## Maintainer setup (once)
 
-1. **Uploads repository** `sahiljangra12/replicaudit-uploads` (already created). Files sent through the website wait there until the audit downloads them, then each request's files are deleted automatically. Keep it **private**: in a public repository, deleted files still stay readable in the git history.
-2. **One access token.** GitHub → Settings → Developer settings → Fine-grained tokens → Generate. Repository access: `replicaudit` and `replicaudit-uploads`. Permissions: **Issues: Read and write** and **Contents: Read and write**. Copy the token.
-3. **Netlify** (project `replicaudit-intake`):
-   * Project configuration → Environment variables → add `GH_INTAKE_TOKEN` = the token (scope: Functions).
-   * Project configuration → Build & deploy → **Link repository** → GitHub → `sahiljangra12/replicaudit` (branch `main`). Every push then deploys the function.
-4. **GitHub repo `replicaudit` → Settings:**
-   * Secrets and variables → Actions → **Secret** `UPLOADS_TOKEN` = the same token; (the variable `UPLOADS_REPO` is optional; it defaults to `sahiljangra12/replicaudit-uploads`).
-   * Pages → Source → **GitHub Actions**.
+No tokens or secrets are needed. Uploads and requests are kept in Netlify Blobs, and the GitHub workflows identify themselves to the intake API with GitHub's own OIDC identity token (only workflows on `main` of this repository are accepted).
+
+1. **Netlify** (project `replicaudit-intake`): Project configuration → Build & deploy → **Link repository** → GitHub → `sahiljangra12/replicaudit` (branch `main`). Every push then deploys the intake API.
+2. **GitHub** → this repository → Settings → Pages → Source → **GitHub Actions**.
+
+How a request flows: website → intake API (stores files and the request) → the **Collect requests** workflow (every 5 minutes) opens the request as an issue and starts **Run audit** → the *fetch* job downloads the files and deletes them from the store → the *audit* job runs the code with no credentials → the *publish* job saves the results and rebuilds the website.
 
 Optional: secret `ANTHROPIC_API_KEY` to use Claude instead of the free model; variable `OLLAMA_MODEL` to choose a different free model.
 
@@ -88,7 +86,7 @@ Each estimate also shows **how** it was checked: *authors' own code* or *AI rebu
 ## Safeguards
 
 * Authors' code and model-written scripts run with credentials removed from their environment and with time limits. The job that runs them can only read the repository; a separate job saves the results.
-* The private-uploads token is used only in the download step, before any untrusted code runs.
+* Only the *fetch* job can read uploaded files (via its OIDC identity); the *audit* job that runs submitted code has no identity token and read-only repository access.
 * Scripts that contain the paper's reported value as a literal are rejected.
 * Uploaded files and authors' data are never published; derived data files are not saved.
 * Nothing joins the registry without human review.
@@ -101,7 +99,7 @@ replicaudit/   fetch.py (DOI/Zenodo/Dataverse/OSF/GitHub/zip/uploads) · intake.
                suggest.py (suggestions) · figures.py · latex.py (PDF report) · prompts.py · report.py · site.py · cli.py
 latex/         style.tex — the report's LaTeX style
 site_src/      website styles and scripts (form, PDF estimate finder, status page) + bundled pdf.js
-netlify/       intake function (website → private uploads + request)
+netlify/       intake function (website → stored files + request queue)
 tools/         server-side PDF table reader (same code as the website)
 audits/        one folder per audit
 .github/       workflows (audit, website, tests) and the request form

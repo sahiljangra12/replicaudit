@@ -1,7 +1,7 @@
 name: Run audit
 
 # Runs automatically when a request arrives from the website (or the GitHub form), free of charge:
-#   1. fetch the materials (the only step that can read the private uploads),
+#   1. a 'fetch' job downloads the materials (the only job that can read uploaded files),
 #   2. run the authors' own R/Python code and look for every reported number,
 #   3. use a model for Stata translation, missing estimates and robustness checks:
 #      Claude if the ANTHROPIC_API_KEY secret exists, otherwise a free open-source model run on this machine,
@@ -20,34 +20,86 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  audit:
+  fetch:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (contains(github.event.issue.labels.*.name, 'audit-request') &&
        (github.event.action == 'opened' || github.event.label.name == 'run-audit'))
     runs-on: ubuntu-latest
-    timeout-minutes: 340
+    timeout-minutes: 60
     permissions:
       contents: read
       issues: write
+      id-token: write   # proves to the intake API that this is ReplicAudit; this job runs no submitted code
     outputs:
       slug: ${{ steps.fetch.outputs.slug }}
     env:
       ISSUE: ${{ github.event.issue.number || inputs.issue }}
-      OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen2.5-coder:7b' }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-
       - name: Mark the request as running
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label running --remove-label results-ready,audit-failed || true
-          gh issue view "$ISSUE" -R "$GITHUB_REPOSITORY" --json body,url -q .body > "$RUNNER_TEMP/issue.md"
+          gh issue view "$ISSUE" -R "$GITHUB_REPOSITORY" --json body -q .body > "$RUNNER_TEMP/issue.md"
           gh issue view "$ISSUE" -R "$GITHUB_REPOSITORY" --json url -q .url > "$RUNNER_TEMP/issue_url.txt"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Step 1 — fetch the materials
+        id: fetch
+        run: |
+          python -m replicaudit intake --step fetch --issue-body "$RUNNER_TEMP/issue.md" \
+            --issue "$ISSUE" --issue-url "$(cat $RUNNER_TEMP/issue_url.txt)" \
+            --audits audits --materials "$RUNNER_TEMP/materials" | tee "$RUNNER_TEMP/fetch.log"
+          dir=$(grep '^AUDIT_DIR=' "$RUNNER_TEMP/fetch.log" | tail -1 | cut -d= -f2-)
+          slug=$(basename "$dir")
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+          tar -czf "$RUNNER_TEMP/bundle.tgz" -C "$RUNNER_TEMP" materials -C "$GITHUB_WORKSPACE" "audits/$slug"
+      - uses: actions/upload-artifact@v4
+        if: steps.fetch.outputs.slug != ''
+        with:
+          name: materials
+          path: ${{ runner.temp }}/bundle.tgz
+          retention-days: 1
+      - name: Report a failure before any results existed
+        if: failure() && steps.fetch.outputs.slug == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label audit-failed --remove-label running || true
+          gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "ReplicAudit could not start this audit. The maintainer has been notified." || true
 
+  audit:
+    needs: fetch
+    if: needs.fetch.outputs.slug != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    permissions:
+      contents: read
+    outputs:
+      slug: ${{ needs.fetch.outputs.slug }}
+    env:
+      SLUG: ${{ needs.fetch.outputs.slug }}
+      OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen2.5-coder:7b' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: materials
+          path: ${{ runner.temp }}
+      - name: Unpack the materials
+        run: |
+          tar -xzf "$RUNNER_TEMP/bundle.tgz" -C "$RUNNER_TEMP" materials
+          tar -xzf "$RUNNER_TEMP/bundle.tgz" -C "$GITHUB_WORKSPACE" "audits/$SLUG"
+          rm "$RUNNER_TEMP/bundle.tgz"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -63,19 +115,6 @@ jobs:
           pip install -r requirements.txt jupyter nbconvert ipykernel
           npm install --prefix tools --ignore-scripts --no-optional --silent
           Rscript -e 'install.packages(c("rmarkdown","knitr"), quiet=TRUE)' || true
-
-      - name: Step 1 — fetch the materials
-        id: fetch
-        env:
-          UPLOADS_REPO: ${{ vars.UPLOADS_REPO || 'sahiljangra12/replicaudit-uploads' }}
-          UPLOADS_TOKEN: ${{ secrets.UPLOADS_TOKEN }}
-        run: |
-          python -m replicaudit intake --step fetch --issue-body "$RUNNER_TEMP/issue.md" \
-            --issue "$ISSUE" --issue-url "$(cat $RUNNER_TEMP/issue_url.txt)" \
-            --audits audits --materials "$RUNNER_TEMP/materials" | tee "$RUNNER_TEMP/fetch.log"
-          dir=$(grep '^AUDIT_DIR=' "$RUNNER_TEMP/fetch.log" | tail -1 | cut -d= -f2-)
-          echo "slug=$(basename "$dir")" >> "$GITHUB_OUTPUT"
-
       - name: Free open-source model (used only when no Claude key is configured)
         id: ollama
         env:
@@ -106,23 +145,16 @@ jobs:
           rm -rf "$RUNNER_TEMP/materials"
 
       - uses: actions/upload-artifact@v4
-        if: always() && steps.fetch.outputs.slug != ''
+        if: always()
         with:
           name: audit-result
-          path: audits/${{ steps.fetch.outputs.slug }}
+          path: audits/${{ env.SLUG }}
           retention-days: 7
 
-      - name: Report a failure before any results existed
-        if: failure() && steps.fetch.outputs.slug == ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue edit "$ISSUE" -R "$GITHUB_REPOSITORY" --add-label audit-failed --remove-label running || true
-          gh issue comment "$ISSUE" -R "$GITHUB_REPOSITORY" --body "ReplicAudit could not start this audit. The maintainer has been notified." || true
 
   publish:
-    needs: audit
-    if: always() && needs.audit.outputs.slug != ''
+    needs: [fetch, audit]
+    if: always() && needs.fetch.outputs.slug != ''
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -130,14 +162,14 @@ jobs:
       actions: write
     env:
       ISSUE: ${{ github.event.issue.number || inputs.issue }}
-      SLUG: ${{ needs.audit.outputs.slug }}
+      SLUG: ${{ needs.fetch.outputs.slug }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: audit-result
-          path: audits/${{ needs.audit.outputs.slug }}
+          path: audits/${{ needs.fetch.outputs.slug }}
       - name: Save the results
         run: |
           git config user.name "ReplicAudit"

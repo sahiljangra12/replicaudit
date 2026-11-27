@@ -165,7 +165,7 @@ def fetch_materials(body: str, root: Path, materials: Path, issue: int | None = 
         record["status"] = "could not fetch"
         record["error"] = str(e)
         state["ok"] = False
-    # Uploaded files are now on the runner: remove them from the uploads repository.
+    # Uploaded files are now on the runner: delete them from the intake store.
     from .fetch import UPLOAD_RE, delete_uploads
     removed = sum(delete_uploads(rid) for rid in sorted({m.group(1) for m in UPLOAD_RE.finditer(body)}))
     if removed:

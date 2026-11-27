@@ -595,7 +595,7 @@ def status_page():
 <p class="small" id="t-err" style="color:var(--red)"></p></div></section>
 <section class="sec alt" style="padding-top:48px"><div class="wrap">
 <div id="ask" hidden class="card" style="max-width:520px;margin:0 auto"><h3 class="h3" style="margin-bottom:12px">Enter your request number</h3>
-<div style="display:flex;gap:10px"><input class="field-in" id="rnum" inputmode="numeric" placeholder="e.g. 12"><button class="btn" id="go-track" type="button">Track</button></div></div>
+<div style="display:flex;gap:10px"><input class="field-in" id="rnum" placeholder="Request number or code"><button class="btn" id="go-track" type="button">Track</button></div></div>
 <div id="track" hidden>
 <div class="grid g3 steps3">
 <div class="card st" id="s1"><div class="st-n">1</div><h3>Received</h3><p class="st-s"></p></div>

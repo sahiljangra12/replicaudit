@@ -51,63 +51,69 @@ def _download(url: str, dest: Path) -> Path:
 UPLOAD_RE = re.compile(r"upload://([A-Za-z0-9_-]+)/([^\s)]+)")
 
 
-DEFAULT_UPLOADS_REPO = "sahiljangra12/replicaudit-uploads"
+INTAKE_API = "https://replicaudit-intake.netlify.app"
+INTAKE_AUDIENCE = "replicaudit-intake"
+
+
+def _intake():
+    """Base URL and auth header for the intake API. Inside GitHub Actions (with `id-token: write`)
+    the workflow proves who it is with a fresh GitHub OIDC token; no stored secret is involved."""
+    api = os.environ.get("INTAKE_API") or INTAKE_API
+    tok = os.environ.get("INTAKE_TOKEN")
+    if not tok:
+        url, req_tok = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL"), os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+        if not url or not req_tok:
+            raise FetchError("uploaded files can only be read inside the ReplicAudit GitHub workflow")
+        q = urllib.request.Request(url + "&audience=" + INTAKE_AUDIENCE,
+                                   headers={**UA, "Authorization": f"Bearer {req_tok}"})
+        with urllib.request.urlopen(q, timeout=60) as r:
+            tok = json.loads(r.read().decode())["value"]
+    return api, {**UA, "Authorization": f"Bearer {tok}"}
+
+
+def _intake_call(path: str, data: dict | None = None, raw: bool = False, timeout: int = 120):
+    api, hdr = _intake()
+    body = None
+    if data is not None:
+        body = json.dumps(data).encode()
+        hdr = {**hdr, "Content-Type": "application/json"}
+    req = urllib.request.Request(api + path, data=body, headers=hdr, method="POST" if body else "GET")
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        out = r.read()
+    return out if raw else json.loads(out.decode())
 
 
 def delete_uploads(rid: str) -> int:
-    """Remove a request's uploaded parts from the uploads repository once they have been fetched,
-    so nothing stays there (important when that repository is public). Returns files deleted."""
-    if not re.fullmatch(r"[A-Za-z0-9_-]+", rid or ""):
+    """Remove a request's uploaded files from the intake store once they have been fetched."""
+    if not re.fullmatch(r"[a-f0-9]{16}", rid or ""):
         return 0
-    repo = os.environ.get("UPLOADS_REPO") or DEFAULT_UPLOADS_REPO
-    token = os.environ.get("UPLOADS_TOKEN")
-    if not token:
-        return 0
-    hdr = {**UA, "Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
     try:
-        with urllib.request.urlopen(urllib.request.Request(
-                f"https://api.github.com/repos/{repo}/contents/{rid}", headers=hdr), timeout=60) as r:
-            listing = json.loads(r.read().decode())
+        return int(_intake_call("/api/done", {"rid": rid}).get("deleted", 0))
     except Exception:
         return 0
-    n = 0
-    for e in listing:
-        body = json.dumps({"message": f"remove fetched upload {rid}", "sha": e["sha"]}).encode()
-        req = urllib.request.Request(e["url"].split("?")[0], data=body, method="DELETE",
-                                     headers={**hdr, "Content-Type": "application/json"})
-        try:
-            urllib.request.urlopen(req, timeout=60).close()
-            n += 1
-        except Exception:
-            pass
-    return n
 
 
 def fetch_upload(ref: str, dest_dir: Path) -> Path:
-    """Files sent through the website are stored (in parts of up to 4 MB) in a private repository.
-    ref looks like upload://<request id>/<file name>. Needs UPLOADS_REPO and UPLOADS_TOKEN."""
+    """Files sent through the website are stored in parts of up to 3 MB by the intake API.
+    ref looks like upload://<request id>/<file name>."""
     m = UPLOAD_RE.search(ref)
     if not m:
         raise FetchError(f"bad upload reference: {ref}")
     rid, name = m.group(1), urllib.parse.unquote(m.group(2))
-    repo = os.environ.get("UPLOADS_REPO") or DEFAULT_UPLOADS_REPO
-    token = os.environ.get("UPLOADS_TOKEN")
-    if not token:
-        raise FetchError("UPLOADS_TOKEN is not configured, so uploaded files cannot be read")
-    api = f"https://api.github.com/repos/{repo}/contents/{rid}"
-    hdr = {**UA, "Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
-    with urllib.request.urlopen(urllib.request.Request(api, headers=hdr), timeout=60) as r:
-        listing = json.loads(r.read().decode())
-    parts = sorted((e for e in listing if e["name"].startswith(name + ".part")), key=lambda e: e["name"])
+    try:
+        keys = _intake_call("/api/files?rid=" + urllib.parse.quote(rid))
+    except FetchError:
+        raise
+    except Exception as e:
+        raise FetchError(f"could not reach the upload store: {e}")
+    parts = sorted(k for k in keys if k.startswith(f"{rid}/{name}.part"))
     if not parts:
-        raise FetchError(f"uploaded file {name} not found")
+        raise FetchError(f"uploaded file {name} not found (it may already have been processed)")
     dest = Path(dest_dir) / name
     dest.parent.mkdir(parents=True, exist_ok=True)
-    raw = {**hdr, "Accept": "application/vnd.github.raw"}
     with open(dest, "wb") as fh:
-        for e in parts:
-            with urllib.request.urlopen(urllib.request.Request(e["url"], headers=raw), timeout=300) as r:
-                fh.write(r.read())
+        for k in parts:
+            fh.write(_intake_call("/api/file?key=" + urllib.parse.quote(k), raw=True, timeout=300))
     return dest
 
 

@@ -75,12 +75,40 @@
     $("results").innerHTML = h.join("");
   }
 
+  // A request sent from the website first waits in the intake queue (code like 3fa9c01b5e2d4a77);
+  // GitHub picks it up within a few minutes and gives it a request number.
+  function loadQueued(q) {
+    clearTimeout(timer);
+    $("ask").hidden = true; $("track").hidden = false;
+    var API = document.body.getAttribute("data-api") || "https://replicaudit-intake.netlify.app";
+    fetch(API + "/api/status?id=" + q)
+      .then(function (res) { return res.json().then(function (j) { if (!res.ok) throw new Error(j.error || "The status service is busy. It will retry shortly."); return j; }); })
+      .then(function (j) {
+        if (j.issue) {
+          try { localStorage.setItem("ra-last-request", String(j.issue)); } catch (e) {}
+          history.replaceState(null, "", "?r=" + j.issue); return load(String(j.issue));
+        }
+        $("t-title").textContent = (j.title || "").replace(/^\[Audit\]\s*/, "");
+        $("t-meta").textContent = "Request code " + q + " · received " + new Date(j.created).toLocaleString();
+        step("s1", "done", "We have your request and materials.");
+        step("s2", "now", "Waiting to be picked up. New requests are collected every few minutes.");
+        step("s3", "todo");
+        timer = setTimeout(function () { loadQueued(q); }, 60000);
+      })
+      .catch(function (e) { $("t-err").textContent = e.message; timer = setTimeout(function () { loadQueued(q); }, 120000); });
+  }
+  function open(v) {
+    v = (v || "").trim();
+    if (/^[a-f0-9]{16}$/i.test(v)) { history.replaceState(null, "", "?q=" + v.toLowerCase()); return loadQueued(v.toLowerCase()); }
+    v = v.replace(/\D/g, "");
+    if (v) { history.replaceState(null, "", "?r=" + v); return load(v); }
+    $("ask").hidden = false; $("track").hidden = true;
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
-    var r = new URLSearchParams(location.search).get("r");
-    if (!r) { try { r = localStorage.getItem("ra-last-request"); } catch (e) {} if (r) history.replaceState(null, "", "?r=" + r); }
-    $("go-track").addEventListener("click", function () {
-      var v = ($("rnum").value || "").replace(/\D/g, ""); if (v) { history.replaceState(null, "", "?r=" + v); load(v); }
-    });
-    if (r && /^\d+$/.test(r)) load(r); else { $("ask").hidden = false; $("track").hidden = true; }
+    var p = new URLSearchParams(location.search), r = p.get("q") || p.get("r");
+    if (!r) { try { r = localStorage.getItem("ra-last-request"); } catch (e) {} }
+    $("go-track").addEventListener("click", function () { open($("rnum").value); });
+    open(r);
   });
 })();
