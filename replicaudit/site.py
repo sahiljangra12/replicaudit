@@ -76,8 +76,8 @@ def page(title, body, depth=0, active="", desc="", extra_js="", body_attrs=""):
 </div></nav>
 <main>{body}</main>
 <footer><div class="wrap"><div class="cols">
-<div>Audits are produced by an AI-assisted pipeline and checked by a person before publication.<br>
-Authors are invited to respond before any audit is published.</div>
+<div>Audits are produced by an automated pipeline and checked by a person before publication.<br>
+Each published audit comes with a full PDF report.</div>
 <div class="links"><a href="{up}index.html">Registry</a><a href="{up}submit.html">Submit a paper</a><a href="{up}methods.html">Methods</a><a href="{up}policy.html">Policy</a><a href="{REPO}">Source code</a></div></div>
 <div>ReplicAudit v{__version__} · Code MIT · Audit reports CC BY 4.0 · Maintained by Sahil, Johns Hopkins University</div></div></footer>
 </body></html>"""
@@ -199,7 +199,7 @@ def index_page(audits):
             f'<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">{rob}{stp}</div>'
             f'<div class="chev">›</div></a>')
     listing = "".join(rows) or ('<div class="empty"><div class="h3" style="margin-bottom:8px">No published audits yet.</div>'
-                                'Audits appear here once they have been reviewed and the authors have had a chance to respond.<br><br>'
+                                'Audits appear here once they have been reviewed and published with their report.<br><br>'
                                 '<a class="btn small" href="submit.html">Submit the first paper</a></div>')
     pct = f"{n_exact / n_claims:.0%}" if n_claims else "—"
     stats = f"""<section class="sec alt tight"><div class="wrap wide"><div class="grid g4">
@@ -233,7 +233,7 @@ def index_page(audits):
 <div class="card reveal">{icon("check")}<h3>Rebuild every number.</h3><p>The analysis is rebuilt from the authors' own code and each reported estimate is re-computed. It is compared with the paper at the precision the paper prints: coefficient, standard error and sample size.</p></div>
 <div class="card reveal">{icon("stress")}<h3>Stress-test the headline.</h3><p>The main finding is re-estimated under alternative choices a careful referee would ask about: controls, samples, fixed effects, clustering and measurement.</p></div>
 <div class="card reveal">{icon("review")}<h3>Reviewed by a person.</h3><p>No audit is published automatically. A named reviewer checks the claims, the scripts and the robustness variants, and writes an assessment.</p></div>
-<div class="card reveal">{icon("open")}<h3>Authors reply first.</h3><p>Corresponding authors are invited to respond before publication and have at least 14 days to do so. Replies are published unedited.</p></div>
+<div class="card reveal">{icon("open")}<h3>A full report.</h3><p>Every published audit comes with tables, charts and a typeset PDF report, including concrete suggestions for the authors and for readers.</p></div>
 <div class="card reveal">{icon("lock")}<h3>Fully reproducible.</h3><p>Scripts, model prompts and answers, and checksums are public. Any audit can be replayed exactly, or re-run with a different model.</p></div>
 </div></div></section>
 
@@ -276,6 +276,33 @@ def spec_chart(base, variants):
     return '<div class="chart">' + legend + "".join(p) + "</div>"
 
 
+def deviation_chart(claims):
+    from .figures import deviation_rows
+    rows = deviation_rows(claims)
+    if not rows:
+        return ""
+    devs = [abs(d) for _, d, _ in rows if d is not None]
+    lim = max(1.0, min(6.0, (max(devs) if devs else 1) * 1.25))
+    W, L, R, rh = 900, 110, 30, 28
+    H = rh * len(rows) + 56
+    x = lambda v: L + (max(-lim, min(lim, v)) + lim) / (2 * lim) * (W - L - R)
+    col = {"exact": "var(--green)", "close": "var(--green)", "same_sign": "var(--amber)", "different": "var(--red)"}
+    p = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" aria-label="Distance of each audited estimate from the published value">',
+         f'<rect x="{x(-0.5):.1f}" y="6" width="{x(0.5) - x(-0.5):.1f}" height="{H - 46}" fill="var(--green)" opacity=".08"/>',
+         f'<line x1="{x(0):.1f}" y1="6" x2="{x(0):.1f}" y2="{H - 40}" stroke="currentColor" opacity=".35"/>']
+    for i, (lab, d, v) in enumerate(rows):
+        y = 22 + i * rh
+        p.append(f'<text x="{L - 14}" y="{y + 5}" text-anchor="end" font-size="13" font-family="var(--mono)">{E(lab)}</text>')
+        if d is None:
+            p.append(f'<text x="{L + 6}" y="{y + 5}" font-size="12" class="axis" font-style="italic">not found</text>')
+        else:
+            p.append(f'<circle cx="{x(d):.1f}" cy="{y}" r="6" fill="{col.get(v, "var(--ink-3)")}"/>')
+    for t in (-lim, -0.5, 0, 0.5, lim):
+        p.append(f'<text class="axis" x="{x(t):.1f}" y="{H - 22}" text-anchor="middle" font-size="12">{t:g}</text>')
+    p.append(f'<text class="axis" x="{(L + W - R) / 2:.0f}" y="{H - 4}" text-anchor="middle" font-size="12">Audit minus paper, in the paper\'s standard errors (shaded: within rounding)</text></svg>')
+    return '<div class="chart" style="margin-top:20px">' + "".join(p) + "</div>"
+
+
 def audit_page(a):
     sub, au = a["sub"], a["audit"]
     s = summarize(a)
@@ -294,7 +321,8 @@ def audit_page(a):
 <h1 class="h1">{E(sub.get("title") or a["slug"])}</h1>
 <p class="lead" style="font-size:19px">{E(sub.get("authors") or "")} · <i>{E(sub.get("journal_year") or "")}</i><br>
 <a href="https://doi.org/{E(doi)}">doi:{E(doi)}</a></p>
-{'' if st == "published" else '<div class="note amber" style="max-width:680px;margin:26px auto 0"><b>Automated result, not yet reviewed.</b> A person checks every audit before it joins the registry, and the authors are invited to respond. Please do not cite it yet.</div>'}
+{('<div class="btns"><a class="btn" href="report.pdf">Download the report (PDF)</a></div>' if a.get("has_pdf") else "")}
+{'' if st == "published" else '<div class="note amber" style="max-width:680px;margin:26px auto 0"><b>Automated result, not yet reviewed.</b> A person checks every audit before it is published with its full report. Please do not cite it yet.</div>'}
 </div></section>""")
 
     head = s["head"]
@@ -309,9 +337,10 @@ def audit_page(a):
                      f'<div class="lbl">of {rs["n"]} robustness checks keep the headline\'s sign and significance — '
                      f'{"fragile" if rs.get("fragile") else "holds"}</div></div>')
     out.append(f'<section class="sec alt tight"><div class="wrap wide"><div class="grid g{len(cards)}">{"".join(cards)}</div>')
-    if rbody.strip():
+    from .suggest import strip_suggestions
+    if strip_suggestions(rbody).strip():
         out.append(f'<div class="card" style="margin-top:20px"><p class="eyebrow muted" style="font-size:14px">Reviewer’s assessment</p>'
-                   f'<div class="article" style="margin:0;max-width:none">{md_to_html(rbody)}</div>'
+                   f'<div class="article" style="margin:0;max-width:none">{md_to_html(strip_suggestions(rbody))}</div>'
                    f'<p class="small" style="margin-top:14px">{E(rmeta.get("reviewer", "—"))} · {E(rmeta.get("date", ""))}</p></div>')
     if au.get("note"):
         out.append(f'<div class="note blue" style="margin-top:20px">{E(au["note"])}</div>')
@@ -340,6 +369,7 @@ def audit_page(a):
 <a class="link-arrow" href="../../methods.html#verdicts">Verdict definitions</a></div>
 <div class="table"><table><thead><tr><th>ID</th><th>Estimate</th><th class="n">Paper</th><th class="n">Rebuilt</th>
 <th class="n">N paper / rebuilt</th><th>Verdict</th><th>How</th><th></th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>
+{deviation_chart(claims)}
 <p class="small" style="margin-top:12px">Coefficient with standard error below. Stars: *** p&lt;0.01, ** p&lt;0.05, * p&lt;0.10. “Authors' own code” means the number appeared in the output of the authors' code run unchanged; “AI rebuild” means a model rewrote the analysis in Python.</p>
 </div></section>""")
 
@@ -392,20 +422,33 @@ def audit_page(a):
             ("Run", E(f"{au.get('started', '')} · {au.get('llm_calls', '—')} model calls")),
             ("Request", (f'<a href="{E(sub.get("issue_url") or "")}">#{sub["issue"]}</a> · ' if sub.get("issue") else "") + E(sub.get("relationship") or "")),
             ("Everything else", f'<a href="{REPO}/tree/main/audits/{a["slug"]}">Scripts, prompts and answers, data files</a>')]
-    rm, rbody2 = a["response"]
-    resp = (f'<div class="article" style="max-width:none;margin:0">{md_to_html(rbody2)}</div><p class="small">{E(rm.get("by", ""))} · {E(rm.get("date", ""))}</p>'
-            if rbody2.strip() else
-            (f'<p class="sub" style="margin:0">The corresponding authors were invited to respond on {E(sub["authors_contacted"])}. No response has been received yet. Authors can respond at any time.</p>'
-             if sub.get("authors_contacted") else
-             '<p class="sub" style="margin:0">The authors have not been contacted yet. They will be invited to respond before this audit is published.</p>'))
+    from .suggest import auto_suggestions, reviewer_suggestions
+    auto = auto_suggestions(au, sub)
+    mine = reviewer_suggestions(rbody)
+    area_name = {"Estimates": "Reported estimates", "Robustness": "Robustness", "Package": "Replication package", "Readers": "For readers"}
+    cards = []
+    for area in ("Estimates", "Robustness", "Package", "Readers"):
+        items = [x for x in auto if x["area"] == area]
+        if items:
+            cards.append(f'<div class="card"><p class="eyebrow muted" style="font-size:14px">{area_name[area]}</p><ul class="sugg">'
+                         + "".join(f'<li>{E(x["text"])}<div class="small">{E(x["why"])}</div></li>' for x in items) + "</ul></div>")
+    if mine:
+        cards.append('<div class="card"><p class="eyebrow muted" style="font-size:14px">From the reviewer</p><ul class="sugg">'
+                     + "".join(f"<li>{E(x)}</li>" for x in mine) + "</ul></div>")
+    if cards:
+        out.append(f"""<section class="sec alt"><div class="wrap wide">
+<p class="eyebrow">Suggestions</p><h2 class="h2" style="margin-bottom:10px">What would make this result stronger.</h2>
+<p class="sub" style="margin:0 0 28px;max-width:760px">Each suggestion states the finding it rests on. Automatic suggestions come from fixed rules; the reviewer's are listed separately.</p>
+<div class="grid g2" style="align-items:start">{"".join(cards)}</div></div></section>""")
+    pdf_btn = (f'<a class="btn" href="report.pdf">Download the report (PDF)</a>' if a.get("has_pdf") else
+               '<p class="sub" style="margin:0">The PDF report is produced when the audit is published.</p>')
     out.append(f"""<section class="sec"><div class="wrap wide"><div class="grid g2" style="align-items:start">
 <div><p class="eyebrow">Provenance</p><h2 class="h2" style="margin-bottom:24px">Exactly what was audited.</h2>
 <dl class="kv">{"".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in prov)}</dl></div>
-<div><p class="eyebrow">Authors’ response</p><h2 class="h2" style="margin-bottom:24px">Right of reply.</h2>
-<div class="card">{resp}</div>
+<div><p class="eyebrow">Report</p><h2 class="h2" style="margin-bottom:24px">The full report.</h2>
+<div class="card">{pdf_btn}<p class="small" style="margin-top:14px">Downloads: <a href="results.csv">results.csv</a> · <a href="audit.json">audit.json</a> · <a href="report.html">machine report</a></p></div>
 <p class="eyebrow" style="margin-top:44px">Cite</p><h2 class="h2" style="margin-bottom:24px">Cite this audit.</h2>
 <div class="card" style="padding:20px"><button class="btn small secondary copy" data-copy="bib" type="button">Copy</button><pre id="bib">{E(bibtex(a))}</pre></div>
-<p class="small" style="margin-top:16px">Downloads: <a href="results.csv">results.csv</a> · <a href="audit.json">audit.json</a> · <a href="report.html">machine report</a></p>
 </div></div></div></section>""")
     return page(sub.get("title") or a["slug"], "\n".join(out), 2, desc=f"Replication audit of {sub.get('title')}")
 
@@ -419,7 +462,8 @@ def article_page(eyebrow, title, lead, toc, html_body, active):
 
 
 METHODS_TOC = [("scope", "Scope"), ("provenance", "Provenance"), ("claims", "Claims"), ("rebuild", "Rebuilding"),
-               ("verdicts", "Verdicts"), ("robustness", "Robustness"), ("review", "Review"), ("limits", "Limitations")]
+               ("verdicts", "Verdicts"), ("robustness", "Robustness"), ("review", "Publication"), ("suggestions", "Suggestions"),
+               ("limits", "Limitations")]
 METHODS = """
 <h2 id="scope"><span class="num-h">1</span>Scope</h2>
 <p>We audit quantitative empirical papers whose data and code, the <i>replication package</i>, are publicly available. Environmental, ecological, energy and sustainability research comes first. We do not collect new data, so an audit tests <b>computational reproducibility</b> (same data, same method, same numbers) and <b>robustness</b> (same data, reasonable alternative choices). It does not test replicability in new samples.</p>
@@ -443,9 +487,11 @@ METHODS = """
 <h2 id="robustness"><span class="num-h">6</span>Robustness</h2>
 <p>For the main claim, the model proposes up to eight alternative specifications a careful referee could reasonably ask for. These cover alternative controls, samples, fixed effects, clustering, outcome measures and outlier treatment, and checks of the measurement or observation process. Each variant is estimated and shown with its 95% interval.</p>
 <p>A headline result is called <b>fragile</b> when fewer than 75% of variants keep its original sign and significance at the 5% level. These variants are a structured sensitivity analysis, not a pre-registered test. The reviewer removes any variant that is not a defensible alternative before publication.</p>
-<h2 id="review"><span class="num-h">7</span>Human review and right of reply</h2>
-<p>No audit is published automatically. Each one arrives as a public pull request. A named reviewer checks the claims, reads the code behind every estimate that did not reproduce, vets the robustness variants and writes an assessment. Corresponding authors are then invited to respond, with at least 14 days to do so, and their response is published unedited.</p>
+<h2 id="review"><span class="num-h">7</span>Review and publication</h2>
+<p>Results are shown to the requester as soon as the audit finishes, clearly marked as unreviewed. An audit joins the registry only after a named reviewer has checked the estimates, read the code behind every estimate that was not reproduced, removed any robustness variant that is not a defensible alternative, and written an assessment with suggestions. Publication produces the audit page with its tables and charts, and a typeset PDF report.</p>
 <p>Scripts, the full model prompts and answers, verdicts and provenance are published for every audit. A run can be replayed exactly or repeated independently.</p>
+<h2 id="suggestions"><span class="num-h">·</span>Suggestions</h2>
+<p>Each report ends with suggestions. Some are generated by fixed rules from what the audit found, for example estimates that could not be traced to any output, scripts that failed on a clean machine, hard-coded paths, missing package versions, or robustness checks under which the headline result changes. Each states the finding it rests on. The reviewer adds their own suggestions, and these are listed separately.</p>
 <h2 id="limits"><span class="num-h">8</span>Limitations</h2>
 <ul>
 <li>Translating code between languages, for example Stata to Python, can cause small numerical differences such as different small-sample corrections or percentile rules. A “Close” verdict often reflects this.</li>
@@ -456,17 +502,15 @@ METHODS = """
 <h2 id="related"><span class="num-h">·</span>Related work</h2>
 <p>ReplicAudit builds on reproducibility benchmarks for AI agents (CORE-Bench, REPRO-Bench, ReplicatorBench, PaperBench, ReplicationBench) and on human efforts such as the Institute for Replication. It differs in auditing published literature rather than benchmarks, and in reporting robustness alongside reproduction.</p>"""
 
-POLICY_TOC = [("purpose", "Purpose"), ("language", "Language"), ("reply", "Right of reply"), ("corrections", "Corrections"),
+POLICY_TOC = [("purpose", "Purpose"), ("language", "Language"), ("corrections", "Corrections"),
               ("ai", "Use of AI"), ("data", "Data"), ("contact", "Contact")]
 POLICY = """
 <h2 id="purpose">Purpose</h2>
-<p>Audits exist to make published results easier to trust and to build on. They are not judgements of authors. Findings are reported in neutral terms, together with the exact code that produced them.</p>
+<p>Audits exist to make published results easier to trust and to build on. They are not judgements of authors. Findings are reported in neutral terms, together with the exact code that produced them, and suggestions are written to be constructive and specific.</p>
 <h2 id="language">Language</h2>
 <p>We describe what our code found under a stated protocol, for example “not reproduced under protocol v1”. We never use words such as “wrong”, “error” or “misconduct”. When we cannot rebuild an estimate, we say so and attribute it to our pipeline unless the reviewer finds a specific cause.</p>
-<h2 id="reply">Authors' right of reply</h2>
-<p>Corresponding authors are contacted before publication and have at least 14 days to respond. Responses are published unedited, and authors may add or update a response at any time.</p>
 <h2 id="corrections">Corrections</h2>
-<p>To report a mistake in an audit, open an issue on GitHub or email the maintainer. Corrections are made in a new commit, the audit page says what changed, and earlier versions stay in the public history.</p>
+<p>Anyone, including a paper's authors, can point out a mistake in an audit through the contact details below. Corrections are made in a new commit, the audit page says what changed, and earlier versions stay in the public history.</p>
 <h2 id="ai">Use of AI</h2>
 <p>Where the authors' own code can be run, no AI is involved in reproducing their numbers. Where it cannot (for example Stata), or for robustness checks, the analysis code is written by a language model named on the audit page, and all its prompts and answers are published. Results are shown to the requester straight away, marked as unreviewed. A person reviews every audit before it joins the registry and is accountable for it.</p>
 <h2 id="data">Data, licences and conflicts of interest</h2>
@@ -545,7 +589,7 @@ def submit_page():
 <div id="summary" style="margin-bottom:18px"></div>
 <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
 <label class="check"><input type="checkbox" id="c1"><span>The replication materials are publicly available and I may point to them.</span></label>
-<label class="check"><input type="checkbox" id="c2"><span>I understand the audit is published openly after review, and the authors are invited to respond first.</span></label>
+<label class="check"><input type="checkbox" id="c2"><span>I understand the results are shown openly on this website.</span></label>
 <ul id="problems" class="small" style="color:var(--red);margin:14px 0 0;padding-left:20px"></ul>
 <div class="btns" style="margin-top:22px"><button class="btn" type="button" id="go">Send request</button><button class="btn secondary" type="button" onclick="document.getElementById('clear').click()">Start over</button></div>
 <div id="send-box" hidden style="margin-top:18px"><div style="height:6px;background:var(--gray-soft);border-radius:99px;overflow:hidden"><div id="send-bar" style="height:100%;width:0;background:var(--blue);transition:width .3s"></div></div>
@@ -556,12 +600,12 @@ def submit_page():
 </form></div></section>
 
 <section class="sec"><div class="wrap wide">
-<div class="center" style="margin-bottom:44px"><p class="eyebrow">What happens next</p><h2 class="h2">Four steps to a published audit.</h2></div>
+<div class="center" style="margin-bottom:44px"><p class="eyebrow">What happens next</p><h2 class="h2">Four steps to a published report.</h2></div>
 <div class="steps">
-<div class="step card"><h3 style="margin:0 0 6px">Approved</h3><p>A maintainer checks the request is in scope and starts the audit.</p></div>
-<div class="step card"><h3 style="margin:0 0 6px">Audited</h3><p>The pipeline fetches the materials, records checksums and runs the audit. Results appear as a public pull request.</p></div>
+<div class="step card"><h3 style="margin:0 0 6px">Received</h3><p>Your request and files arrive, and you get a page to follow it.</p></div>
+<div class="step card"><h3 style="margin:0 0 6px">Audited</h3><p>The audit starts automatically: materials fetched and fingerprinted, code run, every number checked. Results appear on your page.</p></div>
 <div class="step card"><h3 style="margin:0 0 6px">Reviewed</h3><p>A reviewer checks the estimates, code and robustness checks and writes an assessment.</p></div>
-<div class="step card"><h3 style="margin:0 0 6px">Published</h3><p>The authors are invited to respond within 14 days, then the audit joins the registry.</p></div>
+<div class="step card"><h3 style="margin:0 0 6px">Published</h3><p>The audit joins the registry with tables, charts and a PDF report.</p></div>
 </div></div></section>"""
     return page("Submit a paper", body, 0, "submit.html", extra_js=('<script src="vendor/pdfjs/pdf.min.js" defer></script><script src="estimates.js" defer></script>'
                       '<script src="submit.js" defer></script>'),
@@ -588,7 +632,7 @@ def status_page():
     return page("Track a request", body, 0, "status.html", extra_js='<script src="status.js" defer></script>')
 
 
-def build_site(audits_dir="audits", out="_site", include_drafts=False, static_dir=None):
+def build_site(audits_dir="audits", out="_site", include_drafts=False, static_dir=None, pdf=True):
     out = Path(out)
     if out.exists():
         shutil.rmtree(out)
@@ -598,7 +642,6 @@ def build_site(audits_dir="audits", out="_site", include_drafts=False, static_di
         shutil.copy(static / f, out / f)
     shutil.copytree(static / "vendor", out / "vendor")
     audits = load_audits(audits_dir, include_drafts)
-    (out / "index.html").write_text(index_page(audits), encoding="utf-8")
     (out / "submit.html").write_text(submit_page(), encoding="utf-8")
     (out / "status.html").write_text(status_page(), encoding="utf-8")
     (out / "methods.html").write_text(article_page(
@@ -611,9 +654,24 @@ def build_site(audits_dir="audits", out="_site", include_drafts=False, static_di
     for a in audits:
         d = out / "audits" / a["slug"]
         d.mkdir(parents=True)
+        if a["sub"].get("status") == "published" and pdf:
+            try:
+                from .latex import build_tex, compile_pdf
+                import tempfile
+                tmpd = Path(tempfile.mkdtemp(prefix="report_"))
+                got = compile_pdf(build_tex(a["dir"], tmpd))
+                if got:
+                    shutil.copy(got, d / "report.pdf")
+                    shutil.copy(tmpd / "report.tex", d / "report.tex")
+                    a["has_pdf"] = True
+                else:
+                    print(f"LaTeX failed for {a['slug']}; see {tmpd / 'report.log'}")
+            except Exception as e:
+                print(f"report for {a['slug']} not built: {e}")
         (d / "index.html").write_text(audit_page(a), encoding="utf-8")
         for f in ("results.csv", "audit.json", "report.html"):
             if (a["dir"] / f).exists():
                 shutil.copy(a["dir"] / f, d / f)
+    (out / "index.html").write_text(index_page(audits), encoding="utf-8")
     (out / ".nojekyll").write_text("")
     return out

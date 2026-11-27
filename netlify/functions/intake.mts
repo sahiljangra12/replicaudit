@@ -88,7 +88,7 @@ async function submit(req: Request) {
     section("Your relationship to the paper", clean(f.relationship, 100)) +
     section("Notes for the auditors", clean(f.notes, 4000)) +
     "### Confirmation\n\n- [X] The replication materials are publicly available and I am allowed to point to them.\n" +
-    "- [X] I understand the audit is published openly after review, and the authors are invited to respond first.\n\n" +
+    "- [X] I understand the results are shown openly on the website.\n\n" +
     "<!-- submitted through the ReplicAudit website -->\n"
   const issue = await gh(`/repos/${PUBLIC_REPO}/issues`, {
     method: "POST",

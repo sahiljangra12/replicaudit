@@ -40,19 +40,19 @@ Optional: secret `ANTHROPIC_API_KEY` to use Claude instead of the free model; va
 
 ## Reviewing and publishing
 
-New audits appear at once on the requester's status page and as an *unreviewed* page on the website, but not in the registry. To publish one, in `audits/<slug>/`:
+New audits appear at once on the requester's status page and as an *unreviewed* page on the website, but not in the registry. Nobody is emailed. To publish one:
 
-1. Check the estimates, the scripts behind anything not reproduced, and the robustness variants.
-2. Write `review.md`:
-   ```
-   ---
-   reviewer: Your Name
-   date: 2026-12-15
-   ---
-   Short assessment in plain language.
-   ```
-3. Email the corresponding authors and set `"authors_contacted": "YYYY-MM-DD"` in `submission.json`.
-4. After 14 days or a reply, set `"status": "published"` (save any reply as `author_response.md`) and commit. The site rebuilds itself.
+```bash
+python -m replicaudit publish audits/<slug> --reviewer "Your Name"
+```
+
+This marks the audit as published and creates `audits/<slug>/review.md`. Write your assessment there, and add your own suggestions under `## Suggestions`, one per line. Check the estimates, the scripts behind anything not reproduced, and the robustness variants (delete any variant that isn't a defensible alternative). Then commit and push. The website rebuilds itself and the audit gets:
+
+* its page in the registry, with the estimates table, the "audit vs paper" chart and the robustness chart,
+* a **Suggestions** section: automatic ones from fixed rules (each states the finding it rests on) plus yours,
+* a typeset **PDF report** (LaTeX, house style in `latex/style.tex`), downloadable from the page.
+
+To preview a report locally: `python -m replicaudit report-pdf audits/<slug>`.
 
 ## Running locally
 
@@ -91,14 +91,15 @@ Each estimate also shows **how** it was checked: *authors' own code* or *AI rebu
 * The private-uploads token is used only in the download step, before any untrusted code runs.
 * Scripts that contain the paper's reported value as a literal are rejected.
 * Uploaded files and authors' data are never published; derived data files are not saved.
-* Nothing joins the registry without human review and an invitation to the authors to reply.
+* Nothing joins the registry without human review.
 
 ## Layout
 
 ```
 replicaudit/   fetch.py (DOI/Zenodo/Dataverse/OSF/GitHub/zip/uploads) · intake.py · runcode.py (authors' code)
                match.py (find estimates in output) · pipeline.py · backends.py · sandbox.py · compare.py
-               prompts.py · report.py · site.py · cli.py
+               suggest.py (suggestions) · figures.py · latex.py (PDF report) · prompts.py · report.py · site.py · cli.py
+latex/         style.tex — the report's LaTeX style
 site_src/      website styles and scripts (form, PDF estimate finder, status page) + bundled pdf.js
 netlify/       intake function (website → private uploads + request)
 tools/         server-side PDF table reader (same code as the website)

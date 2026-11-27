@@ -88,5 +88,5 @@ body:
       options:
         - label: The replication materials are publicly available and I am allowed to point to them.
           required: true
-        - label: I understand that the audit, once reviewed, is published openly and that the authors are invited to respond.
+        - label: I understand the results are shown openly on the website.
           required: true

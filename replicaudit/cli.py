@@ -54,6 +54,14 @@ def main(argv=None):
                     help="fetch: download only (may use private-upload credentials); audit: run on downloaded materials")
     _common(it)
 
+    pb = sub.add_parser("publish", help="mark an audit as reviewed and published (writes review.md if missing)")
+    pb.add_argument("audit_dir")
+    pb.add_argument("--reviewer", required=True)
+
+    rp2 = sub.add_parser("report-pdf", help="typeset the LaTeX/PDF report for one audit")
+    rp2.add_argument("audit_dir")
+    rp2.add_argument("--out", help="build folder (default: <audit_dir>/_report)")
+
     st = sub.add_parser("site", help="build the static website from audits/")
     st.add_argument("--audits", default="audits")
     st.add_argument("--out", default="_site")
@@ -66,6 +74,27 @@ def main(argv=None):
     if a.cmd == "site":
         from .site import build_site
         print(build_site(a.audits, a.out, a.include_drafts))
+        return
+    if a.cmd == "report-pdf":
+        from .latex import build_tex, compile_pdf
+        t = build_tex(Path(a.audit_dir), Path(a.out or Path(a.audit_dir) / "_report"))
+        pdf = compile_pdf(t)
+        print(pdf or f"LaTeX source written to {t}; no TeX engine found or compilation failed")
+        return
+    if a.cmd == "publish":
+        import time as _t
+        d = Path(a.audit_dir)
+        sj = d / "submission.json"
+        rec = json.loads(sj.read_text())
+        rec["status"] = "published"
+        rec["published"] = _t.strftime("%Y-%m-%d")
+        sj.write_text(json.dumps(rec, indent=2, ensure_ascii=False))
+        rv = d / "review.md"
+        if not rv.exists():
+            rv.write_text(f"---\nreviewer: {a.reviewer}\ndate: {_t.strftime('%Y-%m-%d')}\n---\n"
+                          "Write your assessment here in plain language.\n\n## Suggestions\n- Your own suggestions, one per line.\n")
+            print(f"Created {rv}: write your assessment, then commit.")
+        print(f"{d.name} marked as published. Commit and push; the website and PDF report rebuild automatically.")
         return
 
     opts = dict(max_attempts=a.max_attempts, robustness=a.robustness, n_robust=a.n_robust, timeout=a.timeout)

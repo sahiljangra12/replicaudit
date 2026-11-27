@@ -56,7 +56,7 @@
     var cl = au.claims || [], n = cl.length, cnt = {};
     cl.forEach(function (c) { var v = (c.compare || {}).verdict || "not_found"; cnt[v] = (cnt[v] || 0) + 1; });
     var ac = au.authors_code || {};
-    h.push('<div class="note amber"><b>Automated result, not yet reviewed.</b> A person checks every audit before it joins the public registry, and the authors are invited to respond.</div>');
+    h.push('<div class="note amber"><b>Automated result, not yet reviewed.</b> A person checks every audit before it is published with its full report.</div>');
     h.push('<div class="grid g3" style="margin:20px 0">' +
       '<div class="card stat"><div class="num green">' + (cnt.exact || 0) + '<span style="font-size:26px">/' + n + '</span></div><div class="lbl">estimates reproduced to the printed precision</div></div>' +
       '<div class="card stat"><div class="num">' + esc(ac.language || "—") + '</div><div class="lbl">language of the authors\' code · ' + esc({ ran: "ran successfully", "ran with errors": "ran with some errors", "needs translation": "translated by the AI stage", "no code": "no code found" }[ac.status] || ac.status || "") + '</div></div>' +

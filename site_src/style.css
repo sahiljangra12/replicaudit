@@ -249,3 +249,7 @@ footer .links{display:flex;gap:20px;flex-wrap:wrap}
 .st.bad .st-n{background:var(--red);color:#fff}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,113,227,.45)}50%{box-shadow:0 0 0 9px rgba(0,113,227,0)}}
 @media (prefers-reduced-motion:reduce){.st.now .st-n{animation:none}}
+
+.sugg{margin:6px 0 0;padding-left:20px}
+.sugg li{margin:0 0 14px;font-size:16px;line-height:1.45}
+.sugg li .small{margin-top:3px}

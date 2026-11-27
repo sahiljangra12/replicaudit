@@ -8,3 +8,4 @@ anthropic
 openai
 unrar-cffi
 py7zr
+matplotlib

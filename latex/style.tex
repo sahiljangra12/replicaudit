@@ -1,0 +1,35 @@
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,tabularx,array,longtable}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{microtype}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage[most]{tcolorbox}
+\usepackage{adjustbox}
+\usepackage[htt]{hyphenat}
+\sloppy
+
+\definecolor{jhublue}{RGB}{0,45,114}
+\definecolor{boxgray}{RGB}{244,246,250}
+\titleformat{\section}{\large\bfseries\color{jhublue}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\itshape}{\thesubsubsection}{0.6em}{}
+\setlist{itemsep=2pt,topsep=3pt}
+\captionsetup{font=small,labelfont=bf}
+\pagestyle{fancy}\fancyhf{}
+\cfoot{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\emergencystretch=3em
+
+\newcommand{\file}[1]{\texttt{\small #1}}
+\newtcolorbox{summarybox}{colback=boxgray,colframe=jhublue,boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,fonttitle=\bfseries,title=Summary}
+\newtcolorbox{conceptbox}[1]{colback=white,colframe=jhublue!60,boxrule=0.4pt,arc=2pt,left=6pt,right=6pt,top=3pt,bottom=3pt,fonttitle=\bfseries\small,title={Concept: #1}}
+\newtcolorbox{whybox}{colback=boxgray,colframe=gray!50,boxrule=0.4pt,arc=2pt,left=6pt,right=6pt,top=3pt,bottom=3pt}
